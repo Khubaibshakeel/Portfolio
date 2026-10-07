@@ -1,0 +1,57 @@
+.hero-orbit{padding:64px 4vw 100px}
+.hero-orbit header h2{font-size:clamp(35px,4.5vw,62px)}
+.hero-orbit .orbit-stage{position:relative;height:calc(100svh - 280px);min-height:450px;max-height:850px;margin:0;isolation:isolate;background:radial-gradient(ellipse at 50% 75%,#e8dac180,transparent 65%)}
+.hero-orbit .character{position:absolute;left:50%;top:2%;height:94%;width:42%;transform:translateX(-50%);text-align:center;transition:opacity .7s,filter .7s,transform .9s;pointer-events:none}
+.hero-orbit .reference-window{position:relative;height:calc(100% - 50px);width:100%;overflow:hidden;border-radius:220px 220px 35px 35px;mask-image:linear-gradient(#000 90%,transparent)}
+.hero-orbit .reference-window img{position:absolute;top:-4%;height:220%;width:auto;max-width:none;left:50%;transform:translateX(-34%)}
+.hero-orbit .character span{display:block;font:18px var(--font-hand);margin-top:8px;letter-spacing:0}
+.hero-orbit .character small{display:block;font:9px var(--font-sans);letter-spacing:.02em;color:var(--muted);margin-top:5px}
+.hero-orbit .object-slot{position:absolute;top:36%;width:18%;height:38%;transition:left 1s cubic-bezier(.22,1,.36,1),top 1s cubic-bezier(.22,1,.36,1),width 1s cubic-bezier(.22,1,.36,1),height 1s cubic-bezier(.22,1,.36,1),opacity .65s,filter .65s;z-index:2}
+.hero-orbit .watch{left:4%}.hero-orbit .airpods{left:78%;top:27%}
+.hero-orbit .float-object{height:100%;width:100%;animation:orbit-float 5.5s ease-in-out infinite}
+.hero-orbit .airpods .float-object{animation-delay:-2.5s}
+.hero-orbit model-viewer{width:100%;height:100%;display:block;--progress-bar-color:var(--accent)}
+.hero-orbit .select-object{position:absolute;inset:0;background:none;border:0;cursor:pointer;width:100%;color:inherit}
+.hero-orbit .select-object:disabled{cursor:wait}.hero-orbit .select-object[hidden]{display:none}
+.hero-orbit .object-caption{position:absolute;bottom:-10px;left:0;right:0;font:500 15px var(--font-sans);letter-spacing:0;text-align:center}
+.hero-orbit .object-caption i{display:block;font:10px var(--font-sans);margin-top:8px;color:var(--muted);font-style:normal}
+.hero-orbit .select-object:focus-visible{outline:1px solid var(--accent);border-radius:40%}.hero-orbit .select-object:hover .object-caption{color:var(--accent)}
+.hero-orbit .orbit-stage.focused .character{opacity:.1;filter:blur(12px);transform:translateX(-50%) scale(.85)}
+.hero-orbit .orbit-stage.focused .object-slot:not(.selected){opacity:0;filter:blur(12px);pointer-events:none}
+.hero-orbit .orbit-stage.focused .object-slot.selected{left:20%;top:0;width:60%;height:87%;z-index:3}
+.hero-orbit .selected .float-object{animation:none}
+.hero-orbit .focus-controls{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:8px;z-index:4}
+.hero-orbit .focus-controls[hidden]{display:none}
+.hero-orbit .focus-controls button{border:1px solid var(--line);border-radius:25px;background:#faf6ee;color:var(--ink);font:11px var(--font-sans);padding:12px 18px;cursor:pointer}
+.hero-orbit .focus-controls button:first-child{background:var(--ink);color:#faf6ee}
+@keyframes orbit-float{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-18px) rotate(3deg)}}
+@media(max-width:640px){
+ .hero-orbit{padding:54px 10px 110px}.hero-orbit .orbit-stage{min-height:490px;height:calc(100svh - 270px)}
+ .hero-orbit .character{width:78%;height:84%;top:3%}.hero-orbit .character span{font-size:16px}
+ .hero-orbit .object-slot{width:22%;height:26%;top:55%}.hero-orbit .watch{left:0}.hero-orbit .airpods{left:78%;top:47%}
+ .hero-orbit .object-caption{font-size:11px}.hero-orbit .object-caption i{font-size:9px}
+ .hero-orbit .orbit-stage.focused .object-slot.selected{left:5%;width:90%;height:85%}
+ .hero-orbit .showcase-status{padding:0 20px;line-height:1.6}
+}
+@media(prefers-reduced-motion:reduce){.hero-orbit .character,.hero-orbit .object-slot{transition:none}.hero-orbit .float-object{animation:none}}
+
+/* Opening scene above the existing introduction. */
+.hero{position:relative;min-height:100svh;padding:85px 24px 70px;justify-content:center;gap:24px}
+.hero-orbit{position:relative;width:min(1100px,100%);padding:0;min-height:0;text-align:center;flex:none}
+.hero-orbit .orbit-stage{height:58svh;min-height:320px;max-height:700px;background:transparent}
+.hero-orbit .character{height:100%;top:0}
+.hero-orbit .reference-window{height:100%}
+.hero-orbit .character>span,.hero-orbit .character>small{display:none}
+.orbit-instruction{font:11px var(--font-sans);letter-spacing:0;color:var(--muted);margin:18px 0 0;min-height:16px}
+.hero-orbit .orbit-stage.focused .object-slot.selected{height:84%}
+@media(max-width:640px){
+ .hero{padding:85px 15px 90px;gap:22px}
+ .hero-orbit{padding:0}
+ .hero-orbit .orbit-stage{height:48svh;min-height:320px}
+ .hero-orbit .character{height:100%;width:78%;top:0}
+ .hero-orbit .orbit-stage.focused .object-slot.selected{height:82%}
+ .hero .about{padding:0 5px}
+ .hero .about-body{font-size:14px;line-height:1.5}
+ .hero .about-title{font-size:clamp(30px,8vw,48px)}
+ .orbit-instruction{font-size:10px}
+}
