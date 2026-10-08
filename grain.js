@@ -1,4 +1,6 @@
 export const palettes = {
+  walnut:{name:'Walnut & sage',colors:['#2d231c','#4b4030','#3d3329']},
+  cocoa:{name:'Cocoa & dusty blue',colors:['#2b1f20','#4b3736','#3e2c2d']},
   espresso:{name:'Espresso & cream',colors:['#24170f','#493222','#342319']},
   sand: {name:'Cream & sand', colors:['#faf6ee','#eddfcb','#f3eadc']},
   sage: {name:'Cream & sage', colors:['#f4f1e5','#d4ddcb','#e9e1ce']},
@@ -64,7 +66,7 @@ export function createGrain(canvas, palette='sand') {
   const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
   const pos=gl.getAttribLocation(program,'position');gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
   const uniforms=Object.fromEntries(['resolution','time','paper','ribbon','edge','organic','patternStrength'].map(k=>[k,gl.getUniformLocation(program,k)]));
-  gl.uniform1f(uniforms.organic,['sand','ocean','garden','lilac','espresso'].includes(palette)?0:1);
+  gl.uniform1f(uniforms.organic,['sand','ocean','garden','lilac','espresso','walnut','cocoa'].includes(palette)?0:1);
   palettes[palette].colors.forEach((color,i)=>gl.uniform3fv(uniforms[['paper','ribbon','edge'][i]],rgb(color)));
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   let frame, visible=true, last=0, lost=false;
@@ -94,7 +96,7 @@ export function createGrain(canvas, palette='sand') {
   start();
 }
 
-// Cream and sand is the default; a palette URL previews other options.
+// Follow the selected site theme; standalone grain studies use a palette URL.
 const selected=window.portfolioTheme?.grain || new URLSearchParams(location.search).get('palette') || 'sand';
 if(palettes[selected] && document.querySelector('.scene-bg')){
   const canvas=document.createElement('canvas');canvas.className='grain-canvas';canvas.setAttribute('aria-hidden','true');

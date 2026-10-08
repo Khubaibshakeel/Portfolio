@@ -203,10 +203,8 @@ function frame(now){
   camera.position.add(correction);target.add(correction);
  }
  mount.style.opacity=String((1-exit)*(stage.classList.contains('focused')?0:1));
- // Keep the torso below the viewport; softly clear the introduction over it.
- const heroBottom=(heroRect.y+heroRect.h/2)*100;
- const fadeStart=lerp(portrait?66:62,90,enter),fadeEnd=lerp(portrait?94:85,100,enter);
- mount.style.maskImage=`linear-gradient(to bottom,#000 ${fadeStart}%,transparent ${fadeEnd}%)`;
+ // Let the torso continue beyond the viewport, without a chest fade.
+ mount.style.maskImage='none';
  // These exported eyes are open hemispheres. Keep their rims behind the lids.
  const trackingStrength=Math.max(0,Math.cos(yaw));
  eyeX=lerp(eyeX,reduced.matches?0:pointer.x*.065*trackingStrength,1-Math.exp(-dt*10));

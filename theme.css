@@ -14,13 +14,38 @@ html[data-theme] .wk-line-btn:hover{color:var(--accent)}
 html[data-theme] .orbit-stage{background:transparent}
 @media(max-width:640px){html[data-theme] .resume .tl-body{background:color-mix(in srgb,var(--paper) 85%,transparent)}}
 
-html[data-theme=espresso]{--line:#e8cda72b;--line-strong:#e8cda747;color-scheme:dark}
-html[data-theme=espresso] body{background:var(--paper)}
-html[data-theme=espresso] .stage-fog{background:var(--paper)}
-html[data-theme=espresso] .hero-chrome,html[data-theme=espresso] .hero-meta,html[data-theme=espresso] .object-caption,html[data-theme=espresso] .orbit-instruction{color:var(--body-copy)}
-html[data-theme=espresso] .scrim,html[data-theme=espresso] .glass-rail{background:transparent}
-html[data-theme=espresso] .hero-frame{border-color:var(--line)}
-html[data-theme=espresso] .project-dialog{background:var(--paper)}
-html[data-theme=espresso] .project-dialog .wk-detail-close{background:var(--theme-surface);color:var(--ink)}
-html[data-theme=espresso] .project-media,html[data-theme=espresso] .project-figure img{background:var(--theme-surface)}
-html[data-theme=espresso] .scroll-cue,html[data-theme=espresso] .loader-label{color:var(--muted)}
+html[data-dark-theme]{--line:#e8cda72b;--line-strong:#e8cda747;color-scheme:dark}
+html[data-dark-theme] body{background:var(--paper)}
+html[data-dark-theme] .stage-fog{background:var(--paper)}
+html[data-dark-theme] .hero-chrome,html[data-dark-theme] .hero-meta,html[data-dark-theme] .object-caption,html[data-dark-theme] .orbit-instruction{color:var(--body-copy)}
+html[data-dark-theme] .scrim,html[data-dark-theme] .glass-rail{background:transparent}
+html[data-dark-theme] .hero-frame{border-color:var(--line)}
+html[data-dark-theme] .project-dialog{background:var(--paper)}
+html[data-dark-theme] .project-dialog .wk-detail-close{background:var(--theme-surface);color:var(--ink)}
+html[data-dark-theme] .project-media,html[data-dark-theme] .project-figure img{background:var(--theme-surface)}
+html[data-dark-theme] .scroll-cue,html[data-dark-theme] .loader-label{color:var(--muted)}
+
+html[data-dark-theme] .wk-line-name,html[data-dark-theme] .wk-detail-title,html[data-dark-theme] .wk-detail-desc h3{color:var(--ink)}
+html[data-dark-theme] .wk-line-tag,html[data-dark-theme] .wk-line-tag::before,html[data-dark-theme] .wk-foot-label,html[data-dark-theme] .wk-card-tagline,html[data-dark-theme] .project-category,html[data-dark-theme] .project-scroll-hint,html[data-dark-theme] .project-figure figcaption{color:var(--muted)}
+html[data-dark-theme] .wk-line-num,html[data-dark-theme] .wk-line-btn:hover .wk-line-name,html[data-dark-theme] .wk-line-btn:focus-visible .wk-line-name,html[data-dark-theme] .wk-detail-desc a{color:var(--accent)}
+html[data-dark-theme] .wk-line,html[data-dark-theme] .tl-logo,html[data-dark-theme] .hero-frame,html[data-dark-theme] .wk-detail-desc blockquote{border-color:var(--line)}
+html[data-dark-theme] .tl-logo,html[data-dark-theme] .wk-detail-desc li,html[data-dark-theme] .wk-detail-desc p,html[data-dark-theme] .wk-detail-desc{color:var(--body-copy)}
+html[data-dark-theme] .tl-logo:hover{color:var(--accent);background:var(--theme-surface);border-color:var(--accent)}
+html[data-dark-theme] .timeline::before,html[data-dark-theme] .scroll-cue-track{background:linear-gradient(var(--muted),transparent)}
+html[data-dark-theme] .scroll-cue-dot{background:var(--accent)}
+html[data-dark-theme] .hero-meta .hm-name{color:var(--accent)}
+html[data-dark-theme] .focus-controls button,html[data-dark-theme] .sound-controls button{background:var(--theme-surface);color:var(--ink)}
+html[data-dark-theme] .focus-controls button:first-child,html[data-dark-theme] .sound-controls button[aria-pressed=true]{background:var(--accent);color:var(--paper)}
+html[data-dark-theme] .source-link{background:var(--accent);color:var(--paper)}
+html[data-dark-theme] .loader-ring{border-color:var(--line);border-top-color:var(--accent);border-right-color:var(--accent)}
+html[data-dark-theme] .site-loader{color:var(--muted)}
+html[data-dark-theme] .wk-detail-close:hover,html[data-dark-theme] .view-toggle:hover{color:var(--accent);border-color:var(--accent)}
+@media(max-width:640px){html[data-dark-theme] .resume .tl-body{background:color-mix(in srgb,var(--paper) 88%,transparent);border-color:var(--line)}}
+
+
+/* The hero copy overlaps the cream hoodie; use dark type on that surface. */
+html[data-dark-theme] .hero .about-title{color:var(--paper);text-shadow:0 1px 8px #f5e9d633}
+html[data-dark-theme] .hero .about-body{color:var(--paper);text-shadow:0 1px 4px #f5e9d655}
+html[data-dark-theme] .scroll-cue-label{color:var(--paper);text-shadow:0 1px 4px #f5e9d655}
+html[data-dark-theme] .scroll-cue-track{background:linear-gradient(var(--paper),transparent)}
+html[data-dark-theme] .scroll-cue-dot{background:var(--paper)}
