@@ -6,7 +6,7 @@ let selected=null,savedScroll=0;const viewers={},pending={};
 function lockScroll(){savedScroll=scrollY;document.documentElement.style.overflow='hidden';document.body.style.position='fixed';document.body.style.top=`-${savedScroll}px`;document.body.style.width='100%';}
 function unlockScroll(){document.documentElement.style.overflow='';document.body.style.position='';document.body.style.top='';document.body.style.width='';scrollTo({top:savedScroll,behavior:'instant'});}
 function resetAngle(key){const viewer=viewers[key];if(viewer){viewer.setAttribute('camera-orbit',models[key].orbit);viewer.jumpCameraToGoal();}}
-function release(key){const viewer=viewers[key];if(viewer){viewer.src=null;viewer.remove();delete viewers[key];delete pending[key];}document.querySelector(`[data-viewer="${key}"] img`).hidden=false;}
+function release(key){const viewer=viewers[key];if(viewer){viewer.src=null;viewer.remove();delete viewers[key];}delete pending[key];document.querySelector(`[data-viewer="${key}"] img`).hidden=false;}
 async function ensureViewer(key){
  if(pending[key])return pending[key];
  pending[key]=(async()=>{

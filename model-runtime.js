@@ -5,5 +5,5 @@ export function loadModelViewer(){
   const Viewer=customElements.get('model-viewer');
   Viewer.modelCacheSize=innerWidth<=900||matchMedia('(pointer:coarse)').matches||navigator.deviceMemory<=4?1:2;
   Viewer.minimumRenderScale=.5;
- });
+ }).catch(error=>{ready=null;throw error;});
 }
