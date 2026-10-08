@@ -16,6 +16,7 @@ const reduced=matchMedia('(prefers-reduced-motion:reduce)');
 const mobile=matchMedia('(max-width:640px)');
 const narrow=matchMedia('(max-width:1000px)');
 // Pick once per page load: resizing must not download a second character.
+const warmClothes=new URLSearchParams(location.search).get('characterPalette')!=='original';
 const compact=innerWidth<=900||matchMedia('(pointer:coarse)').matches||navigator.deviceMemory<=4||navigator.connection?.saveData;
 const clamp=THREE.MathUtils.clamp,lerp=THREE.MathUtils.lerp;
 const smooth=t=>t*t*t*(t*(t*6-15)+10);
@@ -33,8 +34,6 @@ const angles={'focus-start':0,'focus-1':-.64,'focus-2':-1.15,'focus-3':.28,'focu
 const elevations={'focus-start':0,'focus-1':.32,'focus-2':-.08,'focus-3':-.26,'focus-4':.18,'focus-5':.40,'focus-works':.12};
 const distances={'focus-start':5,'focus-1':4.45,'focus-2':5.15,'focus-3':4.65,'focus-4':5.35,'focus-5':4.6,'focus-works':5.8};
 const rolls={'focus-start':0,'focus-1':-.035,'focus-2':.045,'focus-3':-.055,'focus-4':.035,'focus-5':-.025,'focus-works':.12};
-const framingX={'focus-start':.5,'focus-1':.32,'focus-2':.27,'focus-3':.24,'focus-4':.27,'focus-5':.25,'focus-works':.25};
-const framingY={'focus-start':.70,'focus-1':.78,'focus-2':.74,'focus-3':.80,'focus-4':.74,'focus-5':.77,'focus-works':.77};
 let scrollState={from:'focus-start',to:'focus-1',progress:0};
 addEventListener('portfolio:scene',e=>{if(!stage.classList.contains('focused'))scrollState=e.detail;});
 let renderer;
@@ -44,6 +43,28 @@ renderer.setClearColor(0,0);renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.85;
 renderer.shadowMap.enabled=!compact;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 mount.append(renderer.domElement);
+// Use the rendered silhouette to choose two actual colors, rather than blending
+// text colors with the fabric. This tiny mask runs only while hero chrome shows.
+const chrome=document.querySelector('.hero-chrome');
+const darkChrome=document.createElement('div');darkChrome.className='character-chrome';
+darkChrome.innerHTML=chrome.innerHTML;chrome.append(darkChrome);
+const chromeMask=document.createElement('canvas');
+const chromeContext=chromeMask.getContext('2d',{willReadFrequently:true});
+let lastChromeMask=0;
+function updateChromeContrast(now){
+ if(scrollY>300||now-lastChromeMask<180)return;
+ lastChromeMask=now;
+ chromeMask.width=192;chromeMask.height=Math.round(192*innerHeight/innerWidth);
+ chromeContext.drawImage(renderer.domElement,0,0,chromeMask.width,chromeMask.height);
+ const pixels=chromeContext.getImageData(0,0,chromeMask.width,chromeMask.height);
+ for(let i=0;i<pixels.data.length;i+=4){
+  const visible=pixels.data[i+3]>96;
+  pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=255;pixels.data[i+3]=visible?255:0;
+ }
+ chromeContext.putImageData(pixels,0,0);
+ darkChrome.style.maskImage=`url("${chromeMask.toDataURL()}")`;
+ darkChrome.style.webkitMaskImage=darkChrome.style.maskImage;
+}
 const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(32,1,.1,100);
 camera.position.z=5;
 // Avoid multiple full-screen, multisampled HDR buffers on phones/tablets.
@@ -60,16 +81,15 @@ key.castShadow=!compact;key.shadow.mapSize.set(1024,1024);key.shadow.camera.left
 const fill=new THREE.DirectionalLight(0xdfeaff,1.05);fill.position.set(4,2,2);scene.add(fill);
 const rim=new THREE.DirectionalLight(0xffe7c7,1.5);rim.position.set(2,3,-4);scene.add(rim);
 const turn=new THREE.Group(),normalized=new THREE.Group();turn.add(normalized);scene.add(turn);
-const eyes=[];
-let heroRect={x:.5,y:.4,h:.58},loaded=false;
+const eyes=[],orbitPivot=new THREE.Vector3();
+let resumeAnchorX=.35,loaded=false;
 function resize(){
  const pixelBudget=compact?1400000:2800000;
  const dpr=Math.min(devicePixelRatio,compact?1.6:2,Math.sqrt(pixelBudget/(innerWidth*innerHeight)));
  renderer.setPixelRatio(dpr);composer?.setPixelRatio(dpr);
  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);
  composer?.setSize(innerWidth,innerHeight);
- const rect=windowElement.getBoundingClientRect();
- heroRect={x:(rect.left+rect.width/2)/innerWidth,y:(rect.top+scrollY+rect.height/2)/innerHeight,h:rect.height/innerHeight};
+ resumeAnchorX=clamp(document.querySelector('.resume .timeline').getBoundingClientRect().left/innerWidth/2,.28,.40);
 }
 addEventListener('resize',resize);new ResizeObserver(resize).observe(windowElement);resize();
 let pointer={x:0,y:0};
@@ -125,7 +145,26 @@ try{
  model.position.sub(center);normalized.add(model);normalized.scale.setScalar(2/height);
  // This export faces +X; turn it toward the viewer's +Z camera.
  normalized.rotation.y=-Math.PI/2;
- model.traverse(o=>{if(o.isMesh){o.frustumCulled=true;o.castShadow=!compact;o.receiveShadow=!compact;const mats=Array.isArray(o.material)?o.material:[o.material];for(const m of mats)m.envMapIntensity=.55;}});
+ scene.updateMatrixWorld(true);
+ // A fixed anatomical pivot: the midpoint between the two eyeballs.
+ if(eyes.length){for(const eye of eyes)orbitPivot.add(eye.getWorldPosition(new THREE.Vector3()));orbitPivot.divideScalar(eyes.length);turn.worldToLocal(orbitPivot);}else orbitPivot.set(0,.55,0);
+ model.traverse(o=>{
+  if(!o.isMesh)return;
+  o.frustumCulled=true;o.castShadow=!compact;o.receiveShadow=!compact;
+  const materials=Array.isArray(o.material)?o.material:[o.material];
+  const adjusted=materials.map(original=>{
+   let m=original;m.envMapIntensity=.55;
+   if(warmClothes){if(/^hoodie(?:\s|$)/i.test(m.name))m.color.set('#dfc3a0');if(/^cap(?:\s|$)/i.test(m.name))m.color.set('#b29878');}
+   if(/^shirt(?:\.|$)/i.test(m.name)){
+    // Standard materials have fixed dielectric reflection. Physical materials
+    // let black cotton stay matte under the same lights as skin and headphones.
+    if(!('specularIntensity' in m)){m=new THREE.MeshPhysicalMaterial();THREE.MeshStandardMaterial.prototype.copy.call(m,original);}
+    m.roughness=.95;m.metalness=0;m.envMapIntensity=.1;m.specularIntensity=.05;
+   }
+   return m;
+  });
+  o.material=Array.isArray(o.material)?adjusted:adjusted[0];
+ });
  await renderer.compileAsync(scene,camera);
  loaded=true;status.hidden=true;mount.dataset.loaded='true';mount.dataset.quality=compact?'compact':'desktop';mount.dataset.eyes=String(eyes.length);draco.dispose();
  window.dispatchEvent(new Event('portfolio:character-ready'));
@@ -133,7 +172,7 @@ try{
 renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();loaded=false;mount.dataset.loaded='false';document.documentElement.classList.add('character-fallback');status.hidden=false;status.textContent='Character preview';});
 
 let last=performance.now(),lastDraw=0,sceneProgress=0,yaw=0,elevation=0,distance=5,eyeX=0,eyeY=0,firstFrame=false;
-const cameraDirection=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(),target=new THREE.Vector3();
+const cameraDirection=new THREE.Vector3(),target=new THREE.Vector3();
 function frame(now){
  requestAnimationFrame(frame);
  if(document.hidden||!loaded||stage.classList.contains('focused')||document.querySelector('.project-dialog').open){last=now;return;}
@@ -161,47 +200,33 @@ function frame(now){
  yaw=samplePath(angles,segment,t);
  elevation=samplePath(elevations,segment,t);
  distance=samplePath(distances,segment,t);
- const rawExit=scrollState.to==='focus-works'?clamp(scrollState.progress,0,1):0;
- const exitTurn=reduced.matches?0:smooth(clamp(rawExit/.78,0,1));
- // Orbit the actual camera: each résumé stop has its own azimuth, elevation
- // and dolly distance. Offset the aim in camera space to preserve the layout.
- cameraDirection.set(-Math.sin(yaw)*Math.cos(elevation),Math.sin(elevation),Math.cos(yaw)*Math.cos(elevation));
- camera.position.copy(cameraDirection).multiplyScalar(distance);camera.lookAt(0,0,0);
- const roll=reduced.matches?0:samplePath(rolls,segment,t);
- camera.rotateZ(roll);
- right.set(1,0,0).applyQuaternion(camera.quaternion);up.set(0,1,0).applyQuaternion(camera.quaternion);
- const visibleHeight=2*5*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
- const shotX=lerp(from==='focus-start'?heroRect.x:framingX[from]??.25,framingX[to]??.25,t);
- const shotY=lerp(framingY[from]??.76,framingY[to]??.76,t);
- // Sen uses a full-height character behind broad mobile timeline cards,
- // with a modest camera pullback rather than a miniature side column.
+ const exitPhase=clamp(sceneProgress-(stops.length-2),0,1);
+ const straighten=smooth(clamp(exitPhase/.25,0,1));
+ if(exitPhase>0){yaw=lerp(angles['focus-5'],0,straighten);elevation=lerp(elevations['focus-5'],0,straighten);distance=lerp(distances['focus-5'],5,straighten);}
+ // Finish the level frontal pose before any rolling rotation starts.
+ const exitTurn=reduced.matches?0:smooth(clamp((exitPhase-.28)/.5,0,1));
+ // Orbit one fixed anatomical point; composition is a projection offset,
+ // never an angle-dependent sideways translation of the camera or character.
  const portrait=narrow.matches&&innerHeight>innerWidth;
- const x=portrait?lerp(.5,mobile.matches?.43:.32,enter):shotX;
- const y=portrait?lerp(.69,shotY,enter):shotY;
+ const resumeX=mobile.matches?.5:resumeAnchorX;
+ const anchorX=lerp(.5,resumeX,enter),anchorY=.38;
+ const visibleHeight=2*5*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
  const heroHeight=portrait?Math.min(1.3,camera.aspect*2.55):1.15;
  const resumeHeight=portrait?Math.min(1.32,camera.aspect*2.8):1.25*Math.min(1,camera.aspect/1.05);
  const height=lerp(heroHeight,resumeHeight,enter);
- target.copy(right).multiplyScalar(-((x-.5)*visibleHeight*camera.aspect)).addScaledVector(up,-((.5-y)*visibleHeight));
- camera.position.add(target);
- camera.updateMatrixWorld(true);
  turn.position.set(0,0,0);
  turn.rotation.set(0,exitTurn*Math.PI*1.12,-exitTurn*.20);
  turn.scale.setScalar(height*visibleHeight/2);
- if(portrait&&eyes.length){
-  // Aim the portrait around the actual face, rather than the whole torso's
-  // bounding-box center. Profile shots must not push the nose off-screen.
-  scene.updateMatrixWorld(true);
-  const face=new THREE.Vector3(),eyePosition=new THREE.Vector3();
-  for(const eye of eyes)face.add(eye.getWorldPosition(eyePosition));
-  face.divideScalar(eyes.length);
-  const projected=face.clone().project(camera);
-  const desiredX=lerp(.5,mobile.matches?.48:.28,enter);
-  const desiredY=lerp(.38,.34,enter)+exitTurn*.08;
-  const depth=face.clone().sub(camera.position).dot(cameraDirection.clone().negate());
-  const faceHeight=2*depth*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
-  const correction=right.clone().multiplyScalar((projected.x-(desiredX*2-1))*faceHeight*camera.aspect/2).addScaledVector(up,(projected.y-(1-desiredY*2))*faceHeight/2);
-  camera.position.add(correction);target.add(correction);
- }
+ scene.updateMatrixWorld(true);
+ target.copy(orbitPivot);turn.localToWorld(target);
+ cameraDirection.set(-Math.sin(yaw)*Math.cos(elevation),Math.sin(elevation),Math.cos(yaw)*Math.cos(elevation));
+ camera.position.copy(target).addScaledVector(cameraDirection,distance);camera.lookAt(target);
+ const roll=reduced.matches?0:exitPhase>0?lerp(rolls['focus-5'],0,straighten):samplePath(rolls,segment,t);
+ camera.rotateZ(roll);
+ camera.setViewOffset(innerWidth,innerHeight,(.5-anchorX)*innerWidth,(.5-anchorY)*innerHeight,innerWidth,innerHeight);
+ camera.updateMatrixWorld(true);
+ const projectedAnchor=target.clone().project(camera);
+ mount.dataset.anchor=`${((projectedAnchor.x+1)/2).toFixed(4)},${((1-projectedAnchor.y)/2).toFixed(4)}`;
  mount.style.opacity=String((1-exit)*(stage.classList.contains('focused')?0:1));
  // Let the torso continue beyond the viewport, without a chest fade.
  mount.style.maskImage='none';
@@ -212,7 +237,7 @@ function frame(now){
  for(const eye of eyes)eye.rotation.set(0,eyeX,eyeY,'YZX');
  mount.dataset.angle=yaw.toFixed(3);mount.dataset.gaze=`${eyeX.toFixed(3)},${eyeY.toFixed(3)}`;
  mount.dataset.camera=`${yaw.toFixed(3)},${elevation.toFixed(3)},${distance.toFixed(3)}`;
- mount.dataset.roll=roll.toFixed(3);mount.dataset.exitTurn=exitTurn.toFixed(3);
+ mount.dataset.roll=roll.toFixed(3);mount.dataset.exitTurn=exitTurn.toFixed(3);mount.dataset.exitPhase=exitPhase.toFixed(3);
  // Slow, continuous studio sweep: highlight movement, never a flashing light.
  const phase=reduced.matches?0:now*.0004+sceneProgress*.65;
  key.position.set(-3.8+Math.sin(phase)*1.2,5,4+Math.cos(phase)*.8);
@@ -226,6 +251,7 @@ function frame(now){
  mount.dataset.aberration=zoomStrength.toFixed(3);
  if(exit<1||!firstFrame){
   if(composer)composer.render(dt);else renderer.render(scene,camera);
+  updateChromeContrast(now);
   if(!firstFrame){firstFrame=true;mount.dataset.rendered='true';window.portfolioBoot?.ready('scene');}
  }
 }

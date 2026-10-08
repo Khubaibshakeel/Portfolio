@@ -131,6 +131,7 @@ const entries = [...document.querySelectorAll('.tl-entry')];
 let range = 0, scheduled = false;
 const clamp = x => Math.max(0, Math.min(1,x));
 function measure() {
+  document.documentElement.style.setProperty('--resume-line-left',`${document.querySelector('.resume .timeline').getBoundingClientRect().left}px`);
   range = Math.max(0,track.scrollWidth-innerWidth);
   gallery.style.height = mobile.matches || reduced.matches ? 'auto' : `${innerHeight+range}px`;
   paint();
@@ -175,6 +176,8 @@ function paint() {
 }
 function schedule(){if(!scheduled){scheduled=true;requestAnimationFrame(paint);}}
 addEventListener('scroll',schedule,{passive:true});addEventListener('resize',measure);
+addEventListener('portfolio:site-ready',()=>requestAnimationFrame(measure));
+document.fonts.ready.then(measure);
 addEventListener('portfolio:texture-ready',schedule);
 mobile.addEventListener('change',measure);reduced.addEventListener('change',measure);
 new ResizeObserver(measure).observe(track);

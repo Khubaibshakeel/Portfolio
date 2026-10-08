@@ -113,3 +113,7 @@
  .hero-orbit .object-caption i{font-size:10px}
  .hero-orbit .orbit-instruction{top:80%}
 }
+
+/* Keep the title on the cream hoodie below the dark neckline. */
+.hero .about{transform:translateY(24px)}
+@media(max-width:640px){.hero .about{transform:translateY(14px)}}
