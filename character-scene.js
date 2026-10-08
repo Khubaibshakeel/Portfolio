@@ -211,11 +211,12 @@ function frame(now){
  const resumeX=mobile.matches?.5:resumeAnchorX;
  const anchorX=lerp(.5,resumeX,enter),anchorY=.38;
  const visibleHeight=2*5*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
- const heroHeight=portrait?Math.min(1.3,camera.aspect*2.55):1.15;
- const resumeHeight=portrait?Math.min(1.32,camera.aspect*2.8):1.25*Math.min(1,camera.aspect/1.05);
+ const heroHeight=portrait?Math.min(1.352,camera.aspect*2.652):1.196;
+ const resumeHeight=portrait?Math.min(1.373,camera.aspect*2.912):1.30*Math.min(1,camera.aspect/1.05);
  const height=lerp(heroHeight,resumeHeight,enter);
  turn.position.set(0,0,0);
- turn.rotation.set(0,exitTurn*Math.PI*1.12,-exitTurn*.20);
+ // Blender vertical Z becomes Three.js vertical Y after glTF import.
+ turn.rotation.set(0,exitTurn*Math.PI*1.12,0);
  turn.scale.setScalar(height*visibleHeight/2);
  scene.updateMatrixWorld(true);
  target.copy(orbitPivot);turn.localToWorld(target);

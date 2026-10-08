@@ -10,3 +10,12 @@
 @keyframes opening-scene{from{filter:blur(8px)}to{filter:blur(0)}}
 @keyframes opening-copy{from{opacity:0;transform:translateY(12px);filter:blur(6px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}
 @media(prefers-reduced-motion:reduce){.loader-ring{animation-duration:2s}.site-loader{transition:none}.is-revealing .hero .about-intro,.is-revealing #character-scene{animation:none;opacity:1}}
+
+/* A personal mark, animated without waiting for fonts, models or a framework. */
+.loader-signature{width:82px;height:82px;overflow:visible;color:var(--ink,#f5e9d6)}
+.loader-signature path{stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:160;stroke-dashoffset:160;animation:signature-draw 3.4s ease-in-out infinite}
+.loader-signature .signature-leg{animation-delay:.25s}
+.signature-dot{fill:var(--accent,#e2bb83);transform-origin:57px 57px;animation:signature-dot 3.4s ease-in-out infinite}
+@keyframes signature-draw{0%,10%{stroke-dashoffset:160;opacity:.25}45%,75%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:-160;opacity:.1}}
+@keyframes signature-dot{0%,100%{opacity:.5;transform:scale(.85)}50%{opacity:1;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.loader-signature path,.signature-dot{animation:none}.loader-signature path{stroke-dashoffset:0;opacity:1}}
