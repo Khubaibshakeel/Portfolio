@@ -71,7 +71,8 @@ export function createGrain(canvas, palette='sand') {
   function draw(time=0){
     frame=null;if(lost||document.hidden||!visible)return;
     if(time-last>65 || reduced.matches || !last){
-      const bounds=canvas.getBoundingClientRect(), scale=Math.min(devicePixelRatio||1,1.5);
+      // Grain is intentionally fine but doesn't need a retina-sized framebuffer.
+      const bounds=canvas.getBoundingClientRect(), scale=Math.min(devicePixelRatio||1,innerWidth<=900?.8:1,Math.sqrt(1000000/(bounds.width*bounds.height)));
       const w=Math.max(1,Math.round(bounds.width*scale)),h=Math.max(1,Math.round(bounds.height*scale));
       if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
       gl.uniform2f(uniforms.resolution,w,h);gl.uniform1f(uniforms.patternStrength,strength);gl.uniform1f(uniforms.time,reduced.matches?0:time/1000);gl.drawArrays(gl.TRIANGLES,0,6);last=time;
@@ -83,8 +84,9 @@ export function createGrain(canvas, palette='sand') {
   new ResizeObserver(()=>{last=0;start();}).observe(canvas);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)start();});
   reduced.addEventListener('change',()=>{last=0;start();});
-  canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();lost=true;cancelAnimationFrame(frame);});
-  canvas.addEventListener('webglcontextrestored',()=>location.reload());
+  canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();lost=true;cancelAnimationFrame(frame);canvas.hidden=true;canvas.style.display='none';});
+  // Keep the page usable if the browser discards this decorative context.
+  canvas.addEventListener('webglcontextrestored',()=>{canvas.style.background=palettes[palette].colors[0];});
   start();
 }
 

@@ -43,6 +43,13 @@
 .hero-orbit .reference-window{height:100%}
 .hero-orbit .character>span,.hero-orbit .character>small{display:none}
 .orbit-instruction{font:11px var(--font-sans);letter-spacing:0;color:var(--muted);margin:18px 0 0;min-height:16px}
+.hero-orbit{width:min(1400px,100%)}
+.hero-orbit .object-slot{width:23%;height:45%}
+.hero-orbit .watch{left:-1%}.hero-orbit .airpods{left:78%;top:27%}
+.hero-orbit .float-object{position:relative}
+.hero-orbit .float-object>img,.hero-orbit model-viewer{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.hero-orbit .float-object>img[hidden]{display:none}
+.hero-orbit .select-object{min-width:44px;min-height:44px}
 .hero-orbit .orbit-stage.focused .object-slot.selected{height:84%}
 @media(max-width:640px){
  .hero{padding:85px 15px 90px;gap:22px}
@@ -54,4 +61,21 @@
  .hero .about-body{font-size:14px;line-height:1.5}
  .hero .about-title{font-size:clamp(30px,8vw,48px)}
  .orbit-instruction{font-size:10px}
+}
+@media(max-width:900px){
+ .hero-orbit .object-slot{width:28%;height:38%;top:40%}
+ .hero-orbit .watch{left:-2%}.hero-orbit .airpods{left:74%;top:33%}
+ .hero-orbit .object-caption{font-size:11px}.hero-orbit .object-caption i{font-size:9px;line-height:1.5}
+ .hero-orbit .orbit-stage.focused .object-slot.selected{left:4%;top:0;width:92%;height:82%}
+ .hero-orbit .focus-controls button{min-height:44px}
+}
+@media(max-width:640px){
+ .hero-orbit .orbit-stage{height:clamp(280px,45svh,420px);min-height:280px}
+ .hero{padding-left:12px;padding-right:12px;gap:16px}
+ .hero-orbit .focus-controls{bottom:2px}
+ .hero-orbit .orbit-instruction{padding:0 14px;line-height:1.7}
+}
+@media(max-height:520px) and (orientation:landscape){
+ .hero{padding:70px 24px 40px}
+ .hero-orbit .orbit-stage{height:65svh;min-height:240px}
 }

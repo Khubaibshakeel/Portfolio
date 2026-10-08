@@ -1,5 +1,6 @@
-import { groups } from './projects.js';
-import { projectGalleries } from './project-gallery.js';
+import { groups } from './projects.js?v=performance-1';
+import { projectGalleries } from './project-gallery.js?v=performance-1';
+import { loadModelViewer } from './model-runtime.js';
 document.documentElement.classList.add('js');
 const track = document.querySelector('.wk-track');
 const dialog = document.querySelector('.project-dialog');
@@ -8,7 +9,8 @@ const video = document.querySelector('#project-video');
 const toggle = document.querySelector('.view-toggle');
 const modelButton=document.querySelector('#project-3d-toggle');
 let modelViewer=null,modelActive=false;
-const modelSources={'Sveston Paxton — Gold':'assets/sveston.glb','AirPods Max Scene':'assets/airpodsmax.glb'};
+const modelSources={'Sveston Paxton — Gold':'assets/sveston-web.glb','AirPods Max Scene':'assets/airpodsmax-web.glb'};
+function releaseProjectModel(){if(modelViewer){modelViewer.src=null;modelViewer.remove();modelViewer=null;}modelActive=false;}
 let current = null, viewport = false;
 const node = (tag, className, text) => { const el = document.createElement(tag); el.className = className; if (text) el.textContent = text; return el; };
 for (const group of groups) {
@@ -30,7 +32,7 @@ for (const group of groups) {
 }
 function openProject(item,category) {
   current=item; viewport=false;
-  modelActive=false;if(modelViewer)modelViewer.hidden=true;
+  releaseProjectModel();
   modelButton.hidden=!modelSources[item.title];modelButton.textContent='Explore in 3D ↗';
   document.querySelector('#project-title').textContent=item.title;
   document.querySelector('.project-category').textContent=category;
@@ -91,15 +93,15 @@ addEventListener('resize',measureProject);
 image.addEventListener('load',measureProject);
 document.fonts.ready.then(measureProject);
 toggle.addEventListener('click',()=>{
-  modelActive=false;if(modelViewer)modelViewer.hidden=true;image.hidden=false;modelButton.textContent='Explore in 3D ↗';
+  releaseProjectModel();image.hidden=false;modelButton.textContent='Explore in 3D ↗';
   viewport=!viewport;image.src=viewport?current.viewport:current.src;
   toggle.textContent=viewport?'Show final render':'Show viewport';toggle.setAttribute('aria-pressed',String(viewport));
 });
 modelButton.addEventListener('click',async()=>{
-  if(modelActive){modelViewer.hidden=true;image.hidden=false;modelActive=false;modelButton.textContent='Explore in 3D ↗';return;}
+  if(modelActive){releaseProjectModel();image.hidden=false;modelButton.textContent='Explore in 3D ↗';return;}
   const project=current;modelButton.disabled=true;modelButton.textContent='Loading 3D…';
   try{
-    await import('https://unpkg.com/@google/model-viewer@4.0.0/dist/model-viewer.min.js');
+    await loadModelViewer();
     if(!dialog.open||current!==project)return;
     if(!modelViewer){modelViewer=document.createElement('model-viewer');modelViewer.setAttribute('camera-controls','');modelViewer.setAttribute('touch-action','pan-y');modelViewer.setAttribute('shadow-intensity','1');modelViewer.addEventListener('error',()=>{modelViewer.hidden=true;image.hidden=false;modelActive=false;modelButton.textContent='Retry 3D viewer';});document.querySelector('.project-media').append(modelViewer);}
     modelViewer.setAttribute('alt',`${project.title} — drag to rotate and pinch to zoom`);
@@ -110,10 +112,10 @@ modelButton.addEventListener('click',async()=>{
 });
 dialog.querySelector('.wk-detail-close').addEventListener('click',()=>dialog.close());
 dialog.addEventListener('click',e=> {if(e.target === dialog) {const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});
-dialog.addEventListener('close',()=>{video.pause();video.removeAttribute('src');video.load();if(modelViewer)modelViewer.hidden=true;modelActive=false;document.body.style.overflow='';});
+dialog.addEventListener('close',()=>{video.pause();video.removeAttribute('src');video.load();releaseProjectModel();document.body.style.overflow='';});
 
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-const mobile = matchMedia('(max-width:640px)');
+const mobile = matchMedia('(max-width:640px), (max-height:600px) and (max-width:1000px)');
 const gallery = document.querySelector('.wk-gallery');
 const hero = document.querySelector('.hero');
 const about = document.querySelector('.about');

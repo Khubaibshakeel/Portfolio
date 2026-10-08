@@ -14,6 +14,9 @@ const windowElement=document.querySelector('.hero-orbit .reference-window');
 const stage=document.querySelector('.orbit-stage');
 const reduced=matchMedia('(prefers-reduced-motion:reduce)');
 const mobile=matchMedia('(max-width:640px)');
+const narrow=matchMedia('(max-width:1000px)');
+// Pick once per page load: resizing must not download a second character.
+const compact=innerWidth<=900||matchMedia('(pointer:coarse)').matches||navigator.deviceMemory<=4||navigator.connection?.saveData;
 const clamp=THREE.MathUtils.clamp,lerp=THREE.MathUtils.lerp;
 const smooth=t=>t*t*t*(t*(t*6-15)+10);
 const stops=['focus-start','focus-1','focus-2','focus-3','focus-4','focus-5','focus-works'];
@@ -27,20 +30,18 @@ const framingY={'focus-start':.70,'focus-1':.78,'focus-2':.74,'focus-3':.80,'foc
 let scrollState={from:'focus-start',to:'focus-1',progress:0};
 addEventListener('portfolio:scene',e=>{if(!stage.classList.contains('focused'))scrollState=e.detail;});
 let renderer;
-try{renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});}
-catch{status.textContent='3D needs WebGL. Try another browser.';throw new Error('WebGL unavailable');}
-renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+try{renderer=new THREE.WebGLRenderer({alpha:true,antialias:!compact,powerPreference:compact?'low-power':'default'});}
+catch{document.documentElement.classList.add('character-fallback');status.textContent='Character preview';throw new Error('WebGL unavailable');}
 renderer.setClearColor(0,0);renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.9;
 mount.append(renderer.domElement);
 const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(32,1,.1,100);
 camera.position.z=5;
-const postTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,samples:2});
-const composer=new EffectComposer(renderer,postTarget);
-composer.addPass(new RenderPass(scene,camera));
-const chromatic=new ShaderPass(RGBShiftShader);
-chromatic.uniforms.amount.value=0;chromatic.uniforms.angle.value=.35;
-composer.addPass(chromatic);composer.addPass(new OutputPass());
+// Avoid multiple full-screen, multisampled HDR buffers on phones/tablets.
+// Desktop keeps the subtle zoom effect, without multisampled HDR buffers.
+const composer=compact?null:new EffectComposer(renderer,new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType}));
+const chromatic=compact?null:new ShaderPass(RGBShiftShader);
+if(composer){composer.addPass(new RenderPass(scene,camera));chromatic.uniforms.amount.value=0;chromatic.uniforms.angle.value=.35;composer.addPass(chromatic);composer.addPass(new OutputPass());}
 const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment();
 const environment=pmrem.fromScene(room,.04);scene.environment=environment.texture;
 room.dispose();pmrem.dispose();
@@ -51,8 +52,11 @@ const turn=new THREE.Group(),normalized=new THREE.Group();turn.add(normalized);s
 const eyes=[];
 let heroRect={x:.5,y:.4,h:.58},loaded=false;
 function resize(){
+ const pixelBudget=compact?800000:1800000;
+ const dpr=Math.min(devicePixelRatio,compact?1:1.5,Math.sqrt(pixelBudget/(innerWidth*innerHeight)));
+ renderer.setPixelRatio(dpr);composer?.setPixelRatio(dpr);
  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);
- composer.setSize(innerWidth,innerHeight);
+ composer?.setSize(innerWidth,innerHeight);
  const rect=windowElement.getBoundingClientRect();
  heroRect={x:(rect.left+rect.width/2)/innerWidth,y:(rect.top+scrollY+rect.height/2)/innerHeight,h:rect.height/innerHeight};
 }
@@ -88,7 +92,7 @@ function sphereCenter(eye){
  return new THREE.Vector3(rows[0][4],rows[1][4],rows[2][4]);
 }
 try{
- const gltf=await loader.loadAsync('assets/Khubaib.glb',e=>{
+ const gltf=await loader.loadAsync(compact?'assets/Khubaib-mobile.glb':'assets/Khubaib-web.glb',e=>{
   status.textContent=e.total?`Loading Khubaib… ${Math.round(e.loaded/e.total*100)}%`:'Loading Khubaib…';
  });
  const model=gltf.scene;model.updateMatrixWorld(true);
@@ -110,14 +114,19 @@ try{
  // This export faces +X; turn it toward the viewer's +Z camera.
  normalized.rotation.y=-Math.PI/2;
  model.traverse(o=>{if(o.isMesh){o.frustumCulled=true;const mats=Array.isArray(o.material)?o.material:[o.material];for(const m of mats)m.envMapIntensity=.45;}});
- loaded=true;status.hidden=true;mount.dataset.loaded='true';mount.dataset.eyes=String(eyes.length);draco.dispose();
-}catch(error){status.textContent='Character could not load. Refresh to retry.';mount.dataset.error=error.message;console.error('Character scene:',error);}
+ loaded=true;status.hidden=true;mount.dataset.loaded='true';mount.dataset.quality=compact?'compact':'desktop';mount.dataset.eyes=String(eyes.length);draco.dispose();
+ window.dispatchEvent(new Event('portfolio:character-ready'));
+}catch(error){document.documentElement.classList.add('character-fallback');status.textContent='Character preview';mount.dataset.error=error.message;console.error('Character scene:',error);}
+renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();loaded=false;mount.dataset.loaded='false';document.documentElement.classList.add('character-fallback');status.hidden=false;status.textContent='Character preview';});
 
-let last=performance.now(),sceneProgress=0,yaw=0,elevation=0,distance=5,eyeX=0,eyeY=0;
+let last=performance.now(),lastDraw=0,sceneProgress=0,yaw=0,elevation=0,distance=5,eyeX=0,eyeY=0;
 const cameraDirection=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(),target=new THREE.Vector3();
 function frame(now){
- requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.05);last=now;
- if(document.hidden||!loaded)return;
+ requestAnimationFrame(frame);
+ if(document.hidden||!loaded||stage.classList.contains('focused')||document.querySelector('.project-dialog').open){last=now;return;}
+ if(compact&&now-lastDraw<32)return;
+ const dt=Math.min((now-last)/1000,.05);last=now;lastDraw=now;
+ if(scrollState.from==='focus-works'){mount.style.opacity='0';return;}
  // Smooth a single continuous path coordinate, including framing and scale,
  // so fast wheel gestures cannot snap those values while the camera catches up.
  const requested=clamp(Math.max(0,stops.indexOf(scrollState.from))+clamp(scrollState.progress,0,1),0,stops.length-1);
@@ -141,15 +150,22 @@ function frame(now){
  const visibleHeight=2*5*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
  const shotX=lerp(from==='focus-start'?heroRect.x:framingX[from]??.25,framingX[to]??.25,t);
  const shotY=lerp(framingY[from]??.76,framingY[to]??.76,t);
- const x=mobile.matches?lerp(heroRect.x,.16,enter):shotX,y=mobile.matches?lerp(.70,.76,enter):shotY;
- const height=lerp(1.15,mobile.matches ? .8 : 1.25,enter);
+ const x=narrow.matches?lerp(heroRect.x,mobile.matches?.26:clamp(shotX-.04,.25,.28),enter):shotX;
+ const heroY=clamp(heroRect.y+.11,.40,.55);
+ const y=narrow.matches?lerp(heroY,mobile.matches?.68:.72,enter):shotY;
+ // Scale by available width as well as height, so a tall phone cannot crop
+ // the entire face. Maintain upper-chest framing on wider screens.
+ const widthFit=Math.min(1,innerWidth/innerHeight/.95);
+ const resumeHeight=narrow.matches?Math.min(mobile.matches?.8:.7,camera.aspect*.95):1.25*Math.min(1,camera.aspect/1.05);
+ const height=lerp(1.15*widthFit,resumeHeight,enter);
  target.copy(right).multiplyScalar(-((x-.5)*visibleHeight*camera.aspect)).addScaledVector(up,-((.5-y)*visibleHeight));
  camera.position.add(target);camera.lookAt(target);
  turn.position.set(0,0,0);
  turn.scale.setScalar(height*visibleHeight/2);
  mount.style.opacity=String((1-exit)*(stage.classList.contains('focused')?0:1));
  // Keep the torso below the viewport; softly clear the introduction over it.
- const fadeStart=lerp(62,90,enter),fadeEnd=lerp(85,100,enter);
+ const heroBottom=(heroRect.y+heroRect.h/2)*100;
+ const fadeStart=lerp(narrow.matches?heroBottom-8:62,90,enter),fadeEnd=lerp(narrow.matches?heroBottom+2:85,100,enter);
  mount.style.maskImage=`linear-gradient(to bottom,#000 ${fadeStart}%,transparent ${fadeEnd}%)`;
  // These exported eyes are open hemispheres. Keep their rims behind the lids.
  const trackingStrength=Math.max(0,Math.cos(yaw));
@@ -161,8 +177,8 @@ function frame(now){
  // Less than one CSS pixel of color separation, only in the closer shots.
  // The effect stays inside the character canvas; page text remains crisp.
  const zoomStrength=reduced.matches?0:smooth(clamp((5-distance)/.6,0,1));
- chromatic.uniforms.amount.value=zoomStrength*.85/innerWidth;
+ if(chromatic)chromatic.uniforms.amount.value=zoomStrength*.85/innerWidth;
  mount.dataset.aberration=zoomStrength.toFixed(3);
- if(exit<1)composer.render(dt);
+ if(exit<1){if(composer)composer.render(dt);else renderer.render(scene,camera);}
 }
 requestAnimationFrame(frame);
