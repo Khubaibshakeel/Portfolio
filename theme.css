@@ -49,3 +49,5 @@ html[data-dark-theme] .hero .about-body{color:var(--paper);text-shadow:0 1px 4px
 html[data-dark-theme] .scroll-cue-label{color:var(--paper);text-shadow:0 1px 4px #f5e9d655}
 html[data-dark-theme] .scroll-cue-track{background:linear-gradient(var(--paper),transparent)}
 html[data-dark-theme] .scroll-cue-dot{background:var(--paper)}
+
+@media(max-width:640px){html[data-dark-theme] .hero-orbit .object-caption,html[data-dark-theme] .hero-orbit .object-caption i{color:var(--paper);text-shadow:0 1px 4px #f5e9d655}}
