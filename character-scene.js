@@ -19,12 +19,20 @@ const narrow=matchMedia('(max-width:1000px)');
 const compact=innerWidth<=900||matchMedia('(pointer:coarse)').matches||navigator.deviceMemory<=4||navigator.connection?.saveData;
 const clamp=THREE.MathUtils.clamp,lerp=THREE.MathUtils.lerp;
 const smooth=t=>t*t*t*(t*(t*6-15)+10);
+// Continuous cubic tangents carry the camera through each orbit, instead of
+// interpolating azimuth and height along a separate straight line per stop.
+function samplePath(values,index,t){
+ const v=i=>values[stops[clamp(i,0,stops.length-1)]];
+ const a=v(index-1),b=v(index),c=v(index+1),d=v(index+2);
+ return .5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t);
+}
 const stops=['focus-start','focus-1','focus-2','focus-3','focus-4','focus-5','focus-works'];
 // Five deliberately different shots: high right, right profile, low frontal,
 // left profile, and high frontal. No repeated diagonal seesaw.
-const angles={'focus-start':0,'focus-1':-.7,'focus-2':-1.25,'focus-3':.10,'focus-4':1.12,'focus-5':.18,'focus-works':.55};
-const elevations={'focus-start':0,'focus-1':.48,'focus-2':.04,'focus-3':-.30,'focus-4':.06,'focus-5':.38,'focus-works':.2};
-const distances={'focus-start':5,'focus-1':4.4,'focus-2':5.4,'focus-3':4.65,'focus-4':5.5,'focus-5':4.5,'focus-works':5.5};
+const angles={'focus-start':0,'focus-1':-.64,'focus-2':-1.15,'focus-3':.28,'focus-4':1.08,'focus-5':-.12,'focus-works':.4};
+const elevations={'focus-start':0,'focus-1':.32,'focus-2':-.08,'focus-3':-.26,'focus-4':.18,'focus-5':.40,'focus-works':.12};
+const distances={'focus-start':5,'focus-1':4.45,'focus-2':5.15,'focus-3':4.65,'focus-4':5.35,'focus-5':4.6,'focus-works':5.8};
+const rolls={'focus-start':0,'focus-1':-.035,'focus-2':.045,'focus-3':-.055,'focus-4':.035,'focus-5':-.025,'focus-works':.12};
 const framingX={'focus-start':.5,'focus-1':.32,'focus-2':.27,'focus-3':.24,'focus-4':.27,'focus-5':.25,'focus-works':.25};
 const framingY={'focus-start':.70,'focus-1':.78,'focus-2':.74,'focus-3':.80,'focus-4':.74,'focus-5':.77,'focus-works':.77};
 let scrollState={from:'focus-start',to:'focus-1',progress:0};
@@ -33,7 +41,8 @@ let renderer;
 try{renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:compact?'low-power':'default'});}
 catch{document.documentElement.classList.add('character-fallback');status.textContent='Character preview';throw new Error('WebGL unavailable');}
 renderer.setClearColor(0,0);renderer.outputColorSpace=THREE.SRGBColorSpace;
-renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.9;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.85;
+renderer.shadowMap.enabled=!compact;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 mount.append(renderer.domElement);
 const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(32,1,.1,100);
 camera.position.z=5;
@@ -45,9 +54,11 @@ if(composer){composer.addPass(new RenderPass(scene,camera));chromatic.uniforms.a
 const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment();
 const environment=pmrem.fromScene(room,.04);scene.environment=environment.texture;
 room.dispose();pmrem.dispose();
-scene.add(new THREE.HemisphereLight(0xfff5e7,0xc6c9d3,1.5));
-const key=new THREE.DirectionalLight(0xfff4e6,2.2);key.position.set(-3,4,5);scene.add(key);
-const fill=new THREE.DirectionalLight(0xe8efff,.8);fill.position.set(3,1,3);scene.add(fill);
+scene.add(new THREE.HemisphereLight(0xfff6e9,0x605b53,.85));
+const key=new THREE.DirectionalLight(0xffe4c8,2.35);key.position.set(-3.8,5,4);scene.add(key);
+key.castShadow=!compact;key.shadow.mapSize.set(1024,1024);key.shadow.camera.left=-5;key.shadow.camera.right=5;key.shadow.camera.top=6;key.shadow.camera.bottom=-5;key.shadow.camera.near=.5;key.shadow.camera.far=25;key.shadow.normalBias=.04;key.shadow.bias=-.0001;key.shadow.radius=3;
+const fill=new THREE.DirectionalLight(0xdfeaff,1.05);fill.position.set(4,2,2);scene.add(fill);
+const rim=new THREE.DirectionalLight(0xffe7c7,1.5);rim.position.set(2,3,-4);scene.add(rim);
 const turn=new THREE.Group(),normalized=new THREE.Group();turn.add(normalized);scene.add(turn);
 const eyes=[];
 let heroRect={x:.5,y:.4,h:.58},loaded=false;
@@ -94,6 +105,7 @@ function sphereCenter(eye){
 try{
  const gltf=await loader.loadAsync(compact?'assets/Khubaib-balanced-mobile.glb':'assets/Khubaib-balanced.glb',e=>{
   status.textContent=e.total?`Loading Khubaib… ${Math.round(e.loaded/e.total*100)}%`:'Loading Khubaib…';
+  if(e.total)window.portfolioBoot?.progress(e.loaded/e.total*100);
  });
  const model=gltf.scene;model.updateMatrixWorld(true);
  // Recenter each eyeball around its own geometric center. Both exported
@@ -113,39 +125,50 @@ try{
  model.position.sub(center);normalized.add(model);normalized.scale.setScalar(2/height);
  // This export faces +X; turn it toward the viewer's +Z camera.
  normalized.rotation.y=-Math.PI/2;
- model.traverse(o=>{if(o.isMesh){o.frustumCulled=true;const mats=Array.isArray(o.material)?o.material:[o.material];for(const m of mats)m.envMapIntensity=.45;}});
+ model.traverse(o=>{if(o.isMesh){o.frustumCulled=true;o.castShadow=!compact;o.receiveShadow=!compact;const mats=Array.isArray(o.material)?o.material:[o.material];for(const m of mats)m.envMapIntensity=.55;}});
+ await renderer.compileAsync(scene,camera);
  loaded=true;status.hidden=true;mount.dataset.loaded='true';mount.dataset.quality=compact?'compact':'desktop';mount.dataset.eyes=String(eyes.length);draco.dispose();
  window.dispatchEvent(new Event('portfolio:character-ready'));
-}catch(error){document.documentElement.classList.add('character-fallback');status.textContent='Character preview';mount.dataset.error=error.message;console.error('Character scene:',error);}
+}catch(error){document.documentElement.classList.add('character-fallback');status.textContent='Character preview';mount.dataset.error=error.message;window.portfolioBoot?.fail('scene');window.portfolioBoot?.fail('products');console.error('Character scene:',error);}
 renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();loaded=false;mount.dataset.loaded='false';document.documentElement.classList.add('character-fallback');status.hidden=false;status.textContent='Character preview';});
 
-let last=performance.now(),lastDraw=0,sceneProgress=0,yaw=0,elevation=0,distance=5,eyeX=0,eyeY=0;
+let last=performance.now(),lastDraw=0,sceneProgress=0,yaw=0,elevation=0,distance=5,eyeX=0,eyeY=0,firstFrame=false;
 const cameraDirection=new THREE.Vector3(),right=new THREE.Vector3(),up=new THREE.Vector3(),target=new THREE.Vector3();
 function frame(now){
  requestAnimationFrame(frame);
  if(document.hidden||!loaded||stage.classList.contains('focused')||document.querySelector('.project-dialog').open){last=now;return;}
  if(compact&&now-lastDraw<32)return;
  const dt=Math.min((now-last)/1000,.05);last=now;lastDraw=now;
- if(scrollState.from==='focus-works'){mount.style.opacity='0';return;}
+ if(scrollState.from==='focus-works'){
+  mount.style.opacity='0';
+  if(!firstFrame){renderer.render(scene,camera);firstFrame=true;mount.dataset.rendered='true';window.portfolioBoot?.ready('scene');}
+  return;
+ }
  // Smooth a single continuous path coordinate, including framing and scale,
  // so fast wheel gestures cannot snap those values while the camera catches up.
  const requested=clamp(Math.max(0,stops.indexOf(scrollState.from))+clamp(scrollState.progress,0,1),0,stops.length-1);
- sceneProgress=reduced.matches?requested:lerp(sceneProgress,requested,1-Math.exp(-dt*4));
+ sceneProgress=reduced.matches?requested:lerp(sceneProgress,requested,1-Math.exp(-dt*5.5));
  const segment=Math.min(Math.floor(sceneProgress),stops.length-2);
- const from=stops[segment],to=stops[segment+1],t=smooth(clamp(sceneProgress-segment,0,1));
+ const from=stops[segment],to=stops[segment+1];
+ // Reach each pose before its card crosses the focus line, then briefly dwell.
+ const t=smooth(clamp((sceneProgress-segment)/.88,0,1));
  const enter=from==='focus-start'?t:1;
  // Preserve the original Works fade timing: visibility follows actual scroll,
  // independently of the slower, smoothed camera path.
  const fadeEase=t=>t*t*(3-2*t);
  const fadeProgress=fadeEase(clamp(scrollState.progress,0,1));
  const exit=scrollState.to==='focus-works'?fadeEase(clamp((fadeProgress-.25)/.75,0,1)):scrollState.from==='focus-works'?1:0;
- yaw=lerp(angles[from]??0,angles[to]??0,t);
- elevation=lerp(elevations[from]??0,elevations[to]??0,t);
- distance=lerp(distances[from]??5,distances[to]??5,t);
+ yaw=samplePath(angles,segment,t);
+ elevation=samplePath(elevations,segment,t);
+ distance=samplePath(distances,segment,t);
+ const rawExit=scrollState.to==='focus-works'?clamp(scrollState.progress,0,1):0;
+ const exitTurn=reduced.matches?0:smooth(clamp(rawExit/.78,0,1));
  // Orbit the actual camera: each résumé stop has its own azimuth, elevation
  // and dolly distance. Offset the aim in camera space to preserve the layout.
  cameraDirection.set(-Math.sin(yaw)*Math.cos(elevation),Math.sin(elevation),Math.cos(yaw)*Math.cos(elevation));
  camera.position.copy(cameraDirection).multiplyScalar(distance);camera.lookAt(0,0,0);
+ const roll=reduced.matches?0:samplePath(rolls,segment,t);
+ camera.rotateZ(roll);
  right.set(1,0,0).applyQuaternion(camera.quaternion);up.set(0,1,0).applyQuaternion(camera.quaternion);
  const visibleHeight=2*5*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
  const shotX=lerp(from==='focus-start'?heroRect.x:framingX[from]??.25,framingX[to]??.25,t);
@@ -159,8 +182,10 @@ function frame(now){
  const resumeHeight=portrait?Math.min(1.32,camera.aspect*2.8):1.25*Math.min(1,camera.aspect/1.05);
  const height=lerp(heroHeight,resumeHeight,enter);
  target.copy(right).multiplyScalar(-((x-.5)*visibleHeight*camera.aspect)).addScaledVector(up,-((.5-y)*visibleHeight));
- camera.position.add(target);camera.lookAt(target);
+ camera.position.add(target);
+ camera.updateMatrixWorld(true);
  turn.position.set(0,0,0);
+ turn.rotation.set(0,exitTurn*Math.PI*1.12,-exitTurn*.20);
  turn.scale.setScalar(height*visibleHeight/2);
  if(portrait&&eyes.length){
   // Aim the portrait around the actual face, rather than the whole torso's
@@ -171,11 +196,11 @@ function frame(now){
   face.divideScalar(eyes.length);
   const projected=face.clone().project(camera);
   const desiredX=lerp(.5,mobile.matches?.48:.28,enter);
-  const desiredY=lerp(.38,.34,enter);
+  const desiredY=lerp(.38,.34,enter)+exitTurn*.08;
   const depth=face.clone().sub(camera.position).dot(cameraDirection.clone().negate());
   const faceHeight=2*depth*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
   const correction=right.clone().multiplyScalar((projected.x-(desiredX*2-1))*faceHeight*camera.aspect/2).addScaledVector(up,(projected.y-(1-desiredY*2))*faceHeight/2);
-  camera.position.add(correction);target.add(correction);camera.lookAt(target);
+  camera.position.add(correction);target.add(correction);
  }
  mount.style.opacity=String((1-exit)*(stage.classList.contains('focused')?0:1));
  // Keep the torso below the viewport; softly clear the introduction over it.
@@ -189,11 +214,21 @@ function frame(now){
  for(const eye of eyes)eye.rotation.set(0,eyeX,eyeY,'YZX');
  mount.dataset.angle=yaw.toFixed(3);mount.dataset.gaze=`${eyeX.toFixed(3)},${eyeY.toFixed(3)}`;
  mount.dataset.camera=`${yaw.toFixed(3)},${elevation.toFixed(3)},${distance.toFixed(3)}`;
+ mount.dataset.roll=roll.toFixed(3);mount.dataset.exitTurn=exitTurn.toFixed(3);
+ // Slow, continuous studio sweep: highlight movement, never a flashing light.
+ const phase=reduced.matches?0:now*.0004+sceneProgress*.65;
+ key.position.set(-3.8+Math.sin(phase)*1.2,5,4+Math.cos(phase)*.8);
+ key.intensity=2.35+(reduced.matches?0:Math.sin(phase)*.22);
+ rim.position.set(2+Math.cos(phase*.8)*1.3,3,-4);
+ rim.intensity=1.5+(reduced.matches?0:Math.sin(phase+.8)*.28);
  // Less than one CSS pixel of color separation, only in the closer shots.
  // The effect stays inside the character canvas; page text remains crisp.
  const zoomStrength=reduced.matches?0:smooth(clamp((5-distance)/.6,0,1));
  if(chromatic)chromatic.uniforms.amount.value=zoomStrength*.85/innerWidth;
  mount.dataset.aberration=zoomStrength.toFixed(3);
- if(exit<1){if(composer)composer.render(dt);else renderer.render(scene,camera);}
+ if(exit<1||!firstFrame){
+  if(composer)composer.render(dt);else renderer.render(scene,camera);
+  if(!firstFrame){firstFrame=true;mount.dataset.rendered='true';window.portfolioBoot?.ready('scene');}
+ }
 }
 requestAnimationFrame(frame);

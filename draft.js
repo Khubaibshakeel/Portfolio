@@ -1,5 +1,5 @@
-import { groups } from './projects.js?v=quality-3';
-import { projectGalleries } from './project-gallery.js?v=quality-3';
+import { groups } from './projects.js?v=motion-5';
+import { projectGalleries } from './project-gallery.js?v=motion-5';
 import { loadModelViewer } from './model-runtime.js';
 document.documentElement.classList.add('js');
 const track = document.querySelector('.wk-track');

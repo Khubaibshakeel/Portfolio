@@ -1,7 +1,11 @@
 export const palettes = {
+  espresso:{name:'Espresso & cream',colors:['#24170f','#493222','#342319']},
   sand: {name:'Cream & sand', colors:['#faf6ee','#eddfcb','#f3eadc']},
   sage: {name:'Cream & sage', colors:['#f4f1e5','#d4ddcb','#e9e1ce']},
-  blue: {name:'Ivory & dusty blue', colors:['#f3efe6','#d2dfe7','#e7ddcf']}
+  blue: {name:'Ivory & dusty blue', colors:['#f3efe6','#d2dfe7','#e7ddcf']},
+  ocean: {name:'Ocean & clay',colors:['#f8f3e9','#c7dce7','#ecd2bf']},
+  garden: {name:'Sage & rose',colors:['#f6f3e9','#d3dfc8','#eed5da']},
+  lilac: {name:'Lilac & honey',colors:['#f7f3ed','#dfd0ed','#efddb1']}
 };
 const vertex = `attribute vec2 position; void main(){gl_Position=vec4(position,0.,1.);}`;
 const fragment = `precision highp float;
@@ -51,7 +55,7 @@ void main(){
 const rgb = hex => [1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255);
 export function createGrain(canvas, palette='sand') {
   const gl=canvas.getContext('webgl',{alpha:false,antialias:false,depth:false,powerPreference:'low-power'});
-  if(!gl){canvas.style.background=`linear-gradient(135deg,${palettes[palette].colors.join(',')})`;return;}
+  if(!gl){canvas.style.background=`linear-gradient(135deg,${palettes[palette].colors.join(',')})`;window.portfolioBoot?.ready('texture');return;}
   const compile=(type,source)=>{const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;};
   const program=gl.createProgram();const vs=compile(gl.VERTEX_SHADER,vertex),fs=compile(gl.FRAGMENT_SHADER,fragment);
   gl.attachShader(program,vs);gl.attachShader(program,fs);gl.linkProgram(program);
@@ -60,7 +64,7 @@ export function createGrain(canvas, palette='sand') {
   const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
   const pos=gl.getAttribLocation(program,'position');gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
   const uniforms=Object.fromEntries(['resolution','time','paper','ribbon','edge','organic','patternStrength'].map(k=>[k,gl.getUniformLocation(program,k)]));
-  gl.uniform1f(uniforms.organic,palette==='sand'?0:1);
+  gl.uniform1f(uniforms.organic,['sand','ocean','garden','lilac','espresso'].includes(palette)?0:1);
   palettes[palette].colors.forEach((color,i)=>gl.uniform3fv(uniforms[['paper','ribbon','edge'][i]],rgb(color)));
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   let frame, visible=true, last=0, lost=false;
@@ -75,7 +79,7 @@ export function createGrain(canvas, palette='sand') {
       const bounds=canvas.getBoundingClientRect(), scale=Math.min(devicePixelRatio||1,innerWidth<=900?1.25:1.5,Math.sqrt(1600000/(bounds.width*bounds.height)));
       const w=Math.max(1,Math.round(bounds.width*scale)),h=Math.max(1,Math.round(bounds.height*scale));
       if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
-      gl.uniform2f(uniforms.resolution,w,h);gl.uniform1f(uniforms.patternStrength,strength);gl.uniform1f(uniforms.time,reduced.matches?0:time/1000);gl.drawArrays(gl.TRIANGLES,0,6);last=time;
+      gl.uniform2f(uniforms.resolution,w,h);gl.uniform1f(uniforms.patternStrength,strength);gl.uniform1f(uniforms.time,reduced.matches?0:time/1000);gl.drawArrays(gl.TRIANGLES,0,6);last=time;window.portfolioBoot?.ready('texture');
     }
     if(!reduced.matches)frame=requestAnimationFrame(draw);
   }
@@ -91,7 +95,7 @@ export function createGrain(canvas, palette='sand') {
 }
 
 // Cream and sand is the default; a palette URL previews other options.
-const selected=new URLSearchParams(location.search).get('palette') || 'sand';
+const selected=window.portfolioTheme?.grain || new URLSearchParams(location.search).get('palette') || 'sand';
 if(palettes[selected] && document.querySelector('.scene-bg')){
   const canvas=document.createElement('canvas');canvas.className='grain-canvas';canvas.setAttribute('aria-hidden','true');
   document.querySelector('.scene-bg').prepend(canvas);document.documentElement.classList.add('grain-active');createGrain(canvas,selected);

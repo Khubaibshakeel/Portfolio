@@ -1,0 +1,26 @@
+html[data-theme] .scene-bg,html[data-theme] .site-loader{background:var(--paper)}
+html[data-theme] .loader-ring{border-top-color:var(--accent);border-right-color:var(--accent)}
+html[data-theme] .hero .about-body{color:var(--body-copy)}
+html[data-theme] .hero-meta .hm-name{color:var(--accent)}
+html[data-theme] .tl-dot{background:var(--theme-secondary);box-shadow:0 0 0 4px color-mix(in srgb,var(--theme-secondary) 13%,transparent)}
+html[data-theme] .tl-period,html[data-theme] .wk-card-no{color:var(--accent)}
+html[data-theme] .wk-card-cover-no{color:var(--theme-secondary)}
+html[data-theme] .source-link,html[data-theme] .sound-controls button[aria-pressed=true]{background:var(--ink)}
+html[data-theme] .sound-controls button,html[data-theme] .focus-controls button{background:var(--paper)}
+html[data-theme] .focus-controls button:first-child{background:var(--accent);color:var(--paper)}
+html[data-theme] .tl-body{border-color:color-mix(in srgb,var(--accent) 15%,transparent)}
+html[data-theme] .view-toggle,html[data-theme] .project-tags span{border-color:color-mix(in srgb,var(--accent) 30%,transparent);background:var(--theme-surface);color:var(--ink)}
+html[data-theme] .wk-line-btn:hover{color:var(--accent)}
+html[data-theme] .orbit-stage{background:transparent}
+@media(max-width:640px){html[data-theme] .resume .tl-body{background:color-mix(in srgb,var(--paper) 85%,transparent)}}
+
+html[data-theme=espresso]{--line:#e8cda72b;--line-strong:#e8cda747;color-scheme:dark}
+html[data-theme=espresso] body{background:var(--paper)}
+html[data-theme=espresso] .stage-fog{background:var(--paper)}
+html[data-theme=espresso] .hero-chrome,html[data-theme=espresso] .hero-meta,html[data-theme=espresso] .object-caption,html[data-theme=espresso] .orbit-instruction{color:var(--body-copy)}
+html[data-theme=espresso] .scrim,html[data-theme=espresso] .glass-rail{background:transparent}
+html[data-theme=espresso] .hero-frame{border-color:var(--line)}
+html[data-theme=espresso] .project-dialog{background:var(--paper)}
+html[data-theme=espresso] .project-dialog .wk-detail-close{background:var(--theme-surface);color:var(--ink)}
+html[data-theme=espresso] .project-media,html[data-theme=espresso] .project-figure img{background:var(--theme-surface)}
+html[data-theme=espresso] .scroll-cue,html[data-theme=espresso] .loader-label{color:var(--muted)}

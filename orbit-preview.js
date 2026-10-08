@@ -18,7 +18,7 @@ async function ensureViewer(key){
   await new Promise((resolve,reject)=>{viewer.addEventListener('load',resolve,{once:true});viewer.addEventListener('error',reject,{once:true});viewer.src=object.src;});
   viewer.style.opacity='1';slot.querySelector('img').hidden=true;button.querySelector('i').textContent='Click to come closer ↗';
   return viewer;
- })().catch(error=>{release(key);instruction.textContent='Could not load 3D. Go back and tap to retry.';throw error;});
+ })().catch(error=>{release(key);instruction.hidden=false;instruction.textContent='Could not load 3D. Go back and tap to retry.';throw error;});
  return pending[key];
 }
 function returnToWorld(){
@@ -28,7 +28,7 @@ function returnToWorld(){
  document.querySelectorAll('[data-slot]').forEach(slot=>slot.inert=false);
  document.querySelector(`[data-select="${previous}"]`).hidden=false;controls.hidden=true;unlockScroll();
  if(compact)pending[previous]?.then(()=>{if(selected!==previous)release(previous);}).catch(()=>{});
- instruction.textContent='Two floating objects. Pick one to explore.';document.querySelector(`[data-select="${previous}"]`).focus({preventScroll:true});
+ instruction.textContent='';instruction.hidden=true;document.querySelector(`[data-select="${previous}"]`).focus({preventScroll:true});
 }
 document.querySelector('#return').addEventListener('click',returnToWorld);addEventListener('keydown',e=>{if(e.key==='Escape')returnToWorld();});
 document.querySelector('#reset').addEventListener('click',()=>{if(selected)resetAngle(selected);});
@@ -39,14 +39,15 @@ for(const [key,object] of Object.entries(models)){
   selected=key;lockScroll();stage.classList.add('focused');document.querySelector(`[data-slot="${key}"]`).classList.add('selected');button.hidden=true;
   document.querySelectorAll('[data-slot]').forEach(slot=>slot.inert=slot.dataset.slot!==key);controls.hidden=false;
   document.querySelector('#character-scene').style.opacity='0';
-  instruction.textContent=`${object.title} — drag to rotate · pinch to zoom · Back to scroll resumes the page`;
+  instruction.hidden=false;instruction.textContent=`${object.title} — drag to rotate · pinch to zoom · Back to scroll resumes the page`;
   document.querySelector('#return').textContent='← Back to scroll';document.querySelector('#return').focus({preventScroll:true});
   try{const viewer=await ensureViewer(key);if(selected===key)viewer.setAttribute('camera-controls','');}catch{}
  });
 }
-// Desktop loads the small objects sequentially after the character. On smaller
+Promise.all([...document.querySelectorAll('.float-object>img,.character-preview')].map(img=>img.decode().catch(()=>{}))).then(()=>window.portfolioBoot?.ready('previews'));
+// Desktop loads the original objects sequentially after the character. On smaller
 // devices the floating previews stay until tapped, keeping startup memory low.
 if(!compact){
- const preload=()=>{if(!document.hidden&&scrollY<innerHeight)ensureViewer('watch').then(()=>ensureViewer('airpods')).catch(()=>{});};
+ const preload=()=>{ensureViewer('watch').then(()=>ensureViewer('airpods')).then(()=>window.portfolioBoot?.ready('products')).catch(()=>window.portfolioBoot?.fail('products'));};
  if(document.querySelector('#character-scene').dataset.loaded==='true')preload();else addEventListener('portfolio:character-ready',preload,{once:true});
 }
