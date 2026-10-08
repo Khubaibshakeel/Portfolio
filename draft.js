@@ -1,5 +1,5 @@
-import { groups } from './projects.js?v=performance-1';
-import { projectGalleries } from './project-gallery.js?v=performance-1';
+import { groups } from './projects.js?v=quality-3';
+import { projectGalleries } from './project-gallery.js?v=quality-3';
 import { loadModelViewer } from './model-runtime.js';
 document.documentElement.classList.add('js');
 const track = document.querySelector('.wk-track');
@@ -9,7 +9,7 @@ const video = document.querySelector('#project-video');
 const toggle = document.querySelector('.view-toggle');
 const modelButton=document.querySelector('#project-3d-toggle');
 let modelViewer=null,modelActive=false;
-const modelSources={'Sveston Paxton — Gold':'assets/sveston-web.glb','AirPods Max Scene':'assets/airpodsmax-web.glb'};
+const modelSources={'Sveston Paxton — Gold':'assets/sveston.glb','AirPods Max Scene':'assets/airpodsmax.glb'};
 function releaseProjectModel(){if(modelViewer){modelViewer.src=null;modelViewer.remove();modelViewer=null;}modelActive=false;}
 let current = null, viewport = false;
 const node = (tag, className, text) => { const el = document.createElement(tag); el.className = className; if (text) el.textContent = text; return el; };

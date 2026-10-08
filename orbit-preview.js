@@ -1,5 +1,5 @@
 import {loadModelViewer} from './model-runtime.js';
-const models={watch:{title:'Sveston Paxton',src:'assets/sveston-web.glb',poster:'assets/sveston-poster.webp',orbit:'30deg 25deg auto'},airpods:{title:'AirPods Max',src:'assets/airpodsmax-web.glb',poster:'assets/airpodsmax-poster.webp',orbit:'60deg 75deg auto'}};
+const models={watch:{title:'Sveston Paxton',src:'assets/sveston.glb',poster:'assets/sveston-poster-original.webp',orbit:'30deg 25deg auto'},airpods:{title:'AirPods Max',src:'assets/airpodsmax.glb',poster:'assets/airpodsmax-poster-original.webp',orbit:'60deg 75deg auto'}};
 const stage=document.querySelector('.orbit-stage'),controls=document.querySelector('.focus-controls'),instruction=document.querySelector('#instruction');
 const compact=innerWidth<=900||matchMedia('(pointer:coarse)').matches||navigator.deviceMemory<=4||navigator.connection?.saveData;
 let selected=null,savedScroll=0;const viewers={},pending={};

@@ -72,7 +72,7 @@ export function createGrain(canvas, palette='sand') {
     frame=null;if(lost||document.hidden||!visible)return;
     if(time-last>65 || reduced.matches || !last){
       // Grain is intentionally fine but doesn't need a retina-sized framebuffer.
-      const bounds=canvas.getBoundingClientRect(), scale=Math.min(devicePixelRatio||1,innerWidth<=900?.8:1,Math.sqrt(1000000/(bounds.width*bounds.height)));
+      const bounds=canvas.getBoundingClientRect(), scale=Math.min(devicePixelRatio||1,innerWidth<=900?1.25:1.5,Math.sqrt(1600000/(bounds.width*bounds.height)));
       const w=Math.max(1,Math.round(bounds.width*scale)),h=Math.max(1,Math.round(bounds.height*scale));
       if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
       gl.uniform2f(uniforms.resolution,w,h);gl.uniform1f(uniforms.patternStrength,strength);gl.uniform1f(uniforms.time,reduced.matches?0:time/1000);gl.drawArrays(gl.TRIANGLES,0,6);last=time;

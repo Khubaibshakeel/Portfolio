@@ -8,7 +8,10 @@
 .character-fallback #character-scene{display:none}
 .character-fallback #character-status{inset:auto 0 0}
 @media(max-width:640px){
- .resume .timeline,.resume .resume-title{width:57vw;margin-right:0}
- .resume .tl-place{font-size:18px}.resume .tl-points li{font-size:12px;line-height:1.6}
- .resume .tl-role{font-size:12px}.resume .tl-period{font-size:10px}
+ .resume{padding-left:20px;padding-right:20px}
+ .resume .timeline,.resume .resume-title{width:100%;max-width:480px;margin-right:auto;margin-left:auto}
+ .resume .tl-body{background:rgba(250,246,238,.82);backdrop-filter:blur(10px);border:1px solid rgba(136,103,78,.12);padding:20px;border-radius:16px}
+ .resume .tl-place{font-size:22px}.resume .tl-points li{font-size:14px;line-height:1.7}
+ .resume .tl-role{font-size:14px}.resume .tl-period{font-size:11px}
+ .resume .resume-title{text-shadow:none}
 }

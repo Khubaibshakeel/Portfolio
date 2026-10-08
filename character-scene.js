@@ -30,7 +30,7 @@ const framingY={'focus-start':.70,'focus-1':.78,'focus-2':.74,'focus-3':.80,'foc
 let scrollState={from:'focus-start',to:'focus-1',progress:0};
 addEventListener('portfolio:scene',e=>{if(!stage.classList.contains('focused'))scrollState=e.detail;});
 let renderer;
-try{renderer=new THREE.WebGLRenderer({alpha:true,antialias:!compact,powerPreference:compact?'low-power':'default'});}
+try{renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:compact?'low-power':'default'});}
 catch{document.documentElement.classList.add('character-fallback');status.textContent='Character preview';throw new Error('WebGL unavailable');}
 renderer.setClearColor(0,0);renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.9;
@@ -52,8 +52,8 @@ const turn=new THREE.Group(),normalized=new THREE.Group();turn.add(normalized);s
 const eyes=[];
 let heroRect={x:.5,y:.4,h:.58},loaded=false;
 function resize(){
- const pixelBudget=compact?800000:1800000;
- const dpr=Math.min(devicePixelRatio,compact?1:1.5,Math.sqrt(pixelBudget/(innerWidth*innerHeight)));
+ const pixelBudget=compact?1400000:2800000;
+ const dpr=Math.min(devicePixelRatio,compact?1.6:2,Math.sqrt(pixelBudget/(innerWidth*innerHeight)));
  renderer.setPixelRatio(dpr);composer?.setPixelRatio(dpr);
  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);
  composer?.setSize(innerWidth,innerHeight);
@@ -92,7 +92,7 @@ function sphereCenter(eye){
  return new THREE.Vector3(rows[0][4],rows[1][4],rows[2][4]);
 }
 try{
- const gltf=await loader.loadAsync(compact?'assets/Khubaib-mobile.glb':'assets/Khubaib-web.glb',e=>{
+ const gltf=await loader.loadAsync(compact?'assets/Khubaib-balanced-mobile.glb':'assets/Khubaib-balanced.glb',e=>{
   status.textContent=e.total?`Loading Khubaib… ${Math.round(e.loaded/e.total*100)}%`:'Loading Khubaib…';
  });
  const model=gltf.scene;model.updateMatrixWorld(true);
@@ -150,22 +150,37 @@ function frame(now){
  const visibleHeight=2*5*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
  const shotX=lerp(from==='focus-start'?heroRect.x:framingX[from]??.25,framingX[to]??.25,t);
  const shotY=lerp(framingY[from]??.76,framingY[to]??.76,t);
- const x=narrow.matches?lerp(heroRect.x,mobile.matches?.26:clamp(shotX-.04,.25,.28),enter):shotX;
- const heroY=clamp(heroRect.y+.11,.40,.55);
- const y=narrow.matches?lerp(heroY,mobile.matches?.68:.72,enter):shotY;
- // Scale by available width as well as height, so a tall phone cannot crop
- // the entire face. Maintain upper-chest framing on wider screens.
- const widthFit=Math.min(1,innerWidth/innerHeight/.95);
- const resumeHeight=narrow.matches?Math.min(mobile.matches?.8:.7,camera.aspect*.95):1.25*Math.min(1,camera.aspect/1.05);
- const height=lerp(1.15*widthFit,resumeHeight,enter);
+ // Sen uses a full-height character behind broad mobile timeline cards,
+ // with a modest camera pullback rather than a miniature side column.
+ const portrait=narrow.matches&&innerHeight>innerWidth;
+ const x=portrait?lerp(.5,mobile.matches?.43:.32,enter):shotX;
+ const y=portrait?lerp(.69,shotY,enter):shotY;
+ const heroHeight=portrait?Math.min(1.3,camera.aspect*2.55):1.15;
+ const resumeHeight=portrait?Math.min(1.32,camera.aspect*2.8):1.25*Math.min(1,camera.aspect/1.05);
+ const height=lerp(heroHeight,resumeHeight,enter);
  target.copy(right).multiplyScalar(-((x-.5)*visibleHeight*camera.aspect)).addScaledVector(up,-((.5-y)*visibleHeight));
  camera.position.add(target);camera.lookAt(target);
  turn.position.set(0,0,0);
  turn.scale.setScalar(height*visibleHeight/2);
+ if(portrait&&eyes.length){
+  // Aim the portrait around the actual face, rather than the whole torso's
+  // bounding-box center. Profile shots must not push the nose off-screen.
+  scene.updateMatrixWorld(true);
+  const face=new THREE.Vector3(),eyePosition=new THREE.Vector3();
+  for(const eye of eyes)face.add(eye.getWorldPosition(eyePosition));
+  face.divideScalar(eyes.length);
+  const projected=face.clone().project(camera);
+  const desiredX=lerp(.5,mobile.matches?.48:.28,enter);
+  const desiredY=lerp(.38,.34,enter);
+  const depth=face.clone().sub(camera.position).dot(cameraDirection.clone().negate());
+  const faceHeight=2*depth*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
+  const correction=right.clone().multiplyScalar((projected.x-(desiredX*2-1))*faceHeight*camera.aspect/2).addScaledVector(up,(projected.y-(1-desiredY*2))*faceHeight/2);
+  camera.position.add(correction);target.add(correction);camera.lookAt(target);
+ }
  mount.style.opacity=String((1-exit)*(stage.classList.contains('focused')?0:1));
  // Keep the torso below the viewport; softly clear the introduction over it.
  const heroBottom=(heroRect.y+heroRect.h/2)*100;
- const fadeStart=lerp(narrow.matches?heroBottom-8:62,90,enter),fadeEnd=lerp(narrow.matches?heroBottom+2:85,100,enter);
+ const fadeStart=lerp(portrait?66:62,90,enter),fadeEnd=lerp(portrait?94:85,100,enter);
  mount.style.maskImage=`linear-gradient(to bottom,#000 ${fadeStart}%,transparent ${fadeEnd}%)`;
  // These exported eyes are open hemispheres. Keep their rims behind the lids.
  const trackingStrength=Math.max(0,Math.cos(yaw));
