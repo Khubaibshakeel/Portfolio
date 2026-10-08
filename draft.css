@@ -149,3 +149,6 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-off
  .wk-line-btn{padding:16px 0}
  .sound-controls{bottom:max(16px,env(safe-area-inset-bottom))}
 }
+
+/* Retain fine grain while a decorative WebGL context is recovering. */
+.grain-active.grain-unavailable .noise-overlay{display:block;opacity:.08}

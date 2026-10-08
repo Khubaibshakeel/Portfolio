@@ -15,6 +15,12 @@ uniform vec2 resolution;
 uniform float time, organic, patternStrength;
 uniform vec3 paper, ribbon, edge;
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+// Keep animated grain coordinates bounded. Unbounded pixel offsets lose
+// subpixel precision in a long-running GPU shader and flatten the texture.
+float filmGrain(vec2 pixel,float rate){
+  float frame=mod(floor(time*rate),64.);
+  return hash(pixel+frame*vec2(17.,29.))-.5;
+}
 float noise(vec2 p){
   vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
   return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.)),f.x),f.y);
@@ -34,7 +40,7 @@ void main(){
     float dotMask=1.-smoothstep(radius-.055,radius+.055,length(dotUV));
     vec3 ink=mix(ribbon,vec3(.35,.37,.32),.19);
     color=mix(color,ink,dotMask*flow*.58);
-    float grain=hash(gl_FragCoord.xy+floor(time*5.)*vec2(17.,29.))-.5;
+    float grain=filmGrain(gl_FragCoord.xy,5.);
     color=mix(paper,color,patternStrength);
     gl_FragColor=vec4(clamp(color+grain*.035,0.,1.),1.);return;
   }
@@ -50,24 +56,29 @@ void main(){
   color=mix(color,ribbon,core*.89);
   color=mix(paper,color,patternStrength);
   // Fine luminance grain: slower refresh than motion, with no texture downloads.
-  float grain=hash(gl_FragCoord.xy+floor(time*8.)*vec2(17.,29.))-.5;
+  float grain=filmGrain(gl_FragCoord.xy,8.);
   color+=grain*.19;
   gl_FragColor=vec4(clamp(color,0.,1.),1.);
 }`;
 const rgb = hex => [1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255);
-export function createGrain(canvas, palette='sand') {
+export function createGrain(canvas, palette='sand', options={}) {
   const gl=canvas.getContext('webgl',{alpha:false,antialias:false,depth:false,powerPreference:'low-power'});
-  if(!gl){canvas.style.background=`linear-gradient(135deg,${palettes[palette].colors.join(',')})`;window.portfolioBoot?.ready('texture');return;}
-  const compile=(type,source)=>{const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;};
-  const program=gl.createProgram();const vs=compile(gl.VERTEX_SHADER,vertex),fs=compile(gl.FRAGMENT_SHADER,fragment);
-  gl.attachShader(program,vs);gl.attachShader(program,fs);gl.linkProgram(program);
-  if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(program));
-  gl.useProgram(program);gl.deleteShader(vs);gl.deleteShader(fs);
-  const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
-  const pos=gl.getAttribLocation(program,'position');gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
-  const uniforms=Object.fromEntries(['resolution','time','paper','ribbon','edge','organic','patternStrength'].map(k=>[k,gl.getUniformLocation(program,k)]));
-  gl.uniform1f(uniforms.organic,['sand','ocean','garden','lilac','espresso','walnut','cocoa'].includes(palette)?0:1);
-  palettes[palette].colors.forEach((color,i)=>gl.uniform3fv(uniforms[['paper','ribbon','edge'][i]],rgb(color)));
+  if(!gl){canvas.dataset.grainState='fallback';document.documentElement.classList.add('grain-unavailable');canvas.style.background=`linear-gradient(135deg,${palettes[palette].colors.join(',')})`;window.portfolioBoot?.ready('texture');return;}
+  let program,buffer,uniforms;
+  function initialize(){
+    const compile=(type,source)=>{const shader=gl.createShader(type);gl.shaderSource(shader,source);gl.compileShader(shader);if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(shader));return shader;};
+    program=gl.createProgram();const vs=compile(gl.VERTEX_SHADER,vertex),fs=compile(gl.FRAGMENT_SHADER,fragment);
+    gl.attachShader(program,vs);gl.attachShader(program,fs);gl.linkProgram(program);
+    if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(program));
+    gl.useProgram(program);gl.deleteShader(vs);gl.deleteShader(fs);
+    buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
+    const pos=gl.getAttribLocation(program,'position');gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
+    uniforms=Object.fromEntries(['resolution','time','paper','ribbon','edge','organic','patternStrength'].map(k=>[k,gl.getUniformLocation(program,k)]));
+    gl.uniform1f(uniforms.organic,['sand','ocean','garden','lilac','espresso','walnut','cocoa'].includes(palette)?0:1);
+    palettes[palette].colors.forEach((color,i)=>gl.uniform3fv(uniforms[['paper','ribbon','edge'][i]],rgb(color)));
+    canvas.dataset.grainState='running';
+  }
+  initialize();
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   let frame, visible=true, last=0, lost=false;
   let strength=1;
@@ -80,19 +91,29 @@ export function createGrain(canvas, palette='sand') {
       // Grain is intentionally fine but doesn't need a retina-sized framebuffer.
       const bounds=canvas.getBoundingClientRect(), scale=Math.min(devicePixelRatio||1,innerWidth<=900?1.25:1.5,Math.sqrt(1600000/(bounds.width*bounds.height)));
       const w=Math.max(1,Math.round(bounds.width*scale)),h=Math.max(1,Math.round(bounds.height*scale));
-      if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
-      gl.uniform2f(uniforms.resolution,w,h);gl.uniform1f(uniforms.patternStrength,strength);gl.uniform1f(uniforms.time,reduced.matches?0:time/1000);gl.drawArrays(gl.TRIANGLES,0,6);last=time;window.portfolioBoot?.ready('texture');
+      if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
+      gl.viewport(0,0,w,h);gl.uniform2f(uniforms.resolution,w,h);gl.uniform1f(uniforms.patternStrength,strength);gl.uniform1f(uniforms.time,reduced.matches?0:time/1000+(Number(options.timeOffset)||0));gl.drawArrays(gl.TRIANGLES,0,6);last=time;window.portfolioBoot?.ready('texture');
     }
     if(!reduced.matches)frame=requestAnimationFrame(draw);
   }
-  function start(){if(frame===null||frame===undefined)frame=requestAnimationFrame(draw);}
+  function start(){if(lost)return;if(frame===null||frame===undefined)frame=requestAnimationFrame(draw);}
   new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;if(visible)start();}).observe(canvas);
   new ResizeObserver(()=>{last=0;start();}).observe(canvas);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)start();});
   reduced.addEventListener('change',()=>{last=0;start();});
-  canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();lost=true;cancelAnimationFrame(frame);canvas.hidden=true;canvas.style.display='none';});
-  // Keep the page usable if the browser discards this decorative context.
-  canvas.addEventListener('webglcontextrestored',()=>{canvas.style.background=palettes[palette].colors[0];});
+  canvas.addEventListener('webglcontextlost',event=>{
+    event.preventDefault();lost=true;cancelAnimationFrame(frame);frame=null;
+    canvas.hidden=true;canvas.style.display='none';canvas.dataset.grainState='recovering';
+    document.documentElement.classList.add('grain-unavailable');
+  });
+  // A restored WebGL context has no shaders or buffers: rebuild them before
+  // restarting, rather than leaving the canvas permanently hidden.
+  canvas.addEventListener('webglcontextrestored',()=>{
+    try{
+      initialize();lost=false;last=0;canvas.hidden=false;canvas.style.display='block';
+      document.documentElement.classList.remove('grain-unavailable');start();
+    }catch(error){canvas.dataset.grainState='fallback';console.warn('Background texture recovery:',error);}
+  });
   start();
 }
 
