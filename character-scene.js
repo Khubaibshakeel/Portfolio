@@ -32,10 +32,10 @@ const stops=['focus-start',...Array.from(document.querySelectorAll('.tl-entry'),
 // Education opens with a gentle three-quarter pose, followed by five different shots:
 // high right, right profile, low frontal,
 // left profile, and high frontal. No repeated diagonal seesaw.
-const angles={'focus-start':0,'focus-education':.28,'focus-1':-.64,'focus-2':-1.15,'focus-3':.28,'focus-4':1.08,'focus-5':-.12,'focus-works':.4};
-const elevations={'focus-start':0,'focus-education':.14,'focus-1':.32,'focus-2':-.08,'focus-3':-.26,'focus-4':.18,'focus-5':.40,'focus-works':.12};
-const distances={'focus-start':5,'focus-education':4.85,'focus-1':4.45,'focus-2':5.15,'focus-3':4.65,'focus-4':5.35,'focus-5':4.6,'focus-works':5.8};
-const rolls={'focus-start':0,'focus-education':0,'focus-1':-.035,'focus-2':.045,'focus-3':-.055,'focus-4':.035,'focus-5':-.025,'focus-works':.12};
+const angles={'focus-start':0,'focus-education':.28,'focus-1':-.64,'focus-3':.28,'focus-4':1.08,'focus-5':-.12,'focus-works':.4};
+const elevations={'focus-start':0,'focus-education':.14,'focus-1':.32,'focus-3':-.26,'focus-4':.18,'focus-5':.40,'focus-works':.12};
+const distances={'focus-start':5,'focus-education':4.85,'focus-1':4.45,'focus-3':4.65,'focus-4':5.35,'focus-5':4.6,'focus-works':5.8};
+const rolls={'focus-start':0,'focus-education':0,'focus-1':-.035,'focus-3':-.055,'focus-4':.035,'focus-5':-.025,'focus-works':.12};
 let scrollState={from:'focus-start',to:stops[1],progress:0};
 addEventListener('portfolio:scene',e=>{if(!stage.classList.contains('focused'))scrollState=e.detail;});
 let renderer;
@@ -89,7 +89,6 @@ const targetX={},targetY={},targetZ={};
 const stickerGroups={
  'focus-education':['Sticker_NJIT'],
  'focus-1':['Sticker_origami'],
- 'focus-2':['Stricker_past_commssions'],
  'focus-3':['Sticker_environment'],
  'focus-4':['Sticker_Space_settlement','Sticker_Space_settlement.001','Sticker_Space_settlement.002'],
  'focus-5':['Sticker_content_creator','Sticker_content_creator.001','Sticker_creator_handle']
@@ -232,10 +231,10 @@ try{
   focusRadii[stop]=bounds.getBoundingSphere(new THREE.Sphere()).radius;
   angles[stop]=clamp(-Math.atan2(normal.x,normal.z),-1.30,1.30);
   // Alternate high and low views, keeping the orbit aimed at the decal.
-  const pitch=({'focus-education':.20,'focus-1':.36,'focus-2':-.22,'focus-3':.24,'focus-4':-.14,'focus-5':.30})[stop];
+  const pitch=({'focus-education':.20,'focus-1':.36,'focus-3':.24,'focus-4':-.14,'focus-5':.30})[stop];
   elevations[stop]=clamp(pitch+Math.asin(normal.y)*.25,-.30,.43);
   distances[stop]=clamp(focusRadii[stop]*1.86/(Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*.30),1.15,2.45);
-  rolls[stop]=({'focus-education':-.025,'focus-1':-.035,'focus-2':.025,'focus-3':-.025,'focus-4':.02,'focus-5':-.035})[stop];
+  rolls[stop]=({'focus-education':-.025,'focus-1':-.035,'focus-3':-.025,'focus-4':.02,'focus-5':-.035})[stop];
   if(stop==='focus-education'){distances[stop]=1.65;focusRadii[stop]=.09;}
   focusLabels[stop]=names.join(', ');
  }
