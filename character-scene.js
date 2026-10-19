@@ -204,10 +204,10 @@ try{
   if(hit){
    const normal=hit.face.normal.clone().applyNormalMatrix(new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld)).normalize();
    const orientation=new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().lookAt(normal,new THREE.Vector3(),new THREE.Vector3(0,1,0)));
-   const texture=await new THREE.TextureLoader().loadAsync('assets/khubaibrenders-handle.svg');
+   const texture=await new THREE.TextureLoader().loadAsync('assets/khubaibrenders-handle-v2.png');
    texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
    const material=new THREE.MeshStandardMaterial({map:texture,transparent:true,alphaTest:.5,depthWrite:false,roughness:.85,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});
-   const sticker=new THREE.Mesh(new DecalGeometry(hit.object,hit.point,orientation,new THREE.Vector3(.07,.01167,.06)),material);
+   const sticker=new THREE.Mesh(new DecalGeometry(hit.object,hit.point,orientation,new THREE.Vector3(.07,0.0233333,.06)),material);
    sticker.name='Sticker_creator_handle';turn.add(sticker);model.attach(sticker);scene.updateMatrixWorld(true);
   }
  }
