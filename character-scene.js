@@ -6,7 +6,7 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
-import {RGBShiftShader} from 'three/addons/shaders/RGBShiftShader.js';
+import {StickerFocusShader} from './sticker-focus.js?v=stickers-23';
 
 const mount=document.querySelector('#character-scene');
 const status=document.querySelector('#character-status');
@@ -68,11 +68,11 @@ function updateChromeContrast(now){
 }
 const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(32,1,.1,100);
 camera.position.z=5;
-// Avoid multiple full-screen, multisampled HDR buffers on phones/tablets.
-// Desktop keeps the subtle zoom effect, without multisampled HDR buffers.
-const composer=compact?null:new EffectComposer(renderer,new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType}));
-const chromatic=compact?null:new ShaderPass(RGBShiftShader);
-if(composer){composer.addPass(new RenderPass(scene,camera));chromatic.uniforms.amount.value=0;chromatic.uniforms.angle.value=.35;composer.addPass(chromatic);composer.addPass(new OutputPass());}
+// Desktop retains HDR; phones use two small RGBA buffers and one combined
+// focus/color pass instead of a heavy depth-of-field render pipeline.
+const composer=new EffectComposer(renderer,new THREE.WebGLRenderTarget(1,1,{type:compact?THREE.UnsignedByteType:THREE.HalfFloatType}));
+const focusPass=new ShaderPass(StickerFocusShader);
+composer.addPass(new RenderPass(scene,camera));composer.addPass(focusPass);composer.addPass(new OutputPass());
 const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment();
 const environment=pmrem.fromScene(room,.04);scene.environment=environment.texture;
 room.dispose();pmrem.dispose();
@@ -83,6 +83,15 @@ const fill=new THREE.DirectionalLight(0xdfeaff,1.05);fill.position.set(4,2,2);sc
 const rim=new THREE.DirectionalLight(0xffe7c7,1.5);rim.position.set(2,3,-4);scene.add(rim);
 const turn=new THREE.Group(),normalized=new THREE.Group();turn.add(normalized);scene.add(turn);
 const eyes=[],orbitPivot=new THREE.Vector3();
+const focusTargets={},focusRadii={},focusLabels={};
+const targetX={},targetY={},targetZ={};
+const stickerGroups={
+ 'focus-1':['Sticker_origami'],
+ 'focus-2':['Stricker_past_commssions'],
+ 'focus-3':['Sticker_environment'],
+ 'focus-4':['Sticker_Space_settlement','Sticker_Space_settlement.001','Sticker_Space_settlement.002'],
+ 'focus-5':['Sticker_content_creator','Sticker_content_creator.001']
+};
 let resumeAnchorX=.35,loaded=false;
 function resize(){
  const pixelBudget=compact?1400000:2800000;
@@ -124,7 +133,7 @@ function sphereCenter(eye){
  return new THREE.Vector3(rows[0][4],rows[1][4],rows[2][4]);
 }
 try{
- const gltf=await loader.loadAsync(compact?'assets/Khubaib-balanced-mobile.glb':'assets/Khubaib-balanced.glb',e=>{
+ const gltf=await loader.loadAsync(compact?'assets/Khubaib-stickers-mobile-v1.glb':'assets/Khubaib-stickers-v1.glb',e=>{
   status.textContent=e.total?`Loading Khubaib… ${Math.round(e.loaded/e.total*100)}%`:'Loading Khubaib…';
   if(e.total)window.portfolioBoot?.progress(e.loaded/e.total*100);
  });
@@ -149,12 +158,43 @@ try{
  scene.updateMatrixWorld(true);
  // A fixed anatomical pivot: the midpoint between the two eyeballs.
  if(eyes.length){for(const eye of eyes)orbitPivot.add(eye.getWorldPosition(new THREE.Vector3()));orbitPivot.divideScalar(eyes.length);turn.worldToLocal(orbitPivot);}else orbitPivot.set(0,.55,0);
+ // Discover sticker targets from their evaluated, shrinkwrapped geometry.
+ const namedObject=name=>model.getObjectByName(name)||model.getObjectByName(name.replaceAll('.','_'));
+ const headCenter=new THREE.Box3().setFromObject(namedObject('Head')||model).getCenter(new THREE.Vector3());
+ for(const stop of stops){focusTargets[stop]=orbitPivot.clone();focusRadii[stop]=.075;focusLabels[stop]='Portrait';}
+ for(const [stop,names] of Object.entries(stickerGroups)){
+  const objects=names.map(namedObject).filter(Boolean);if(!objects.length)continue;
+  const bounds=new THREE.Box3(),normal=new THREE.Vector3();
+  for(const object of objects){
+   bounds.union(new THREE.Box3().setFromObject(object));
+   object.traverse(mesh=>{if(!mesh.isMesh)return;
+    const normals=mesh.geometry.attributes.normal;if(!normals)return;
+    const average=new THREE.Vector3();
+    for(let i=0;i<normals.count;i+=Math.max(1,Math.floor(normals.count/128)))average.add(new THREE.Vector3().fromBufferAttribute(normals,i));
+    average.applyNormalMatrix(new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld)).normalize();normal.add(average);
+   });
+  }
+  const center=bounds.getCenter(new THREE.Vector3());
+  if(normal.dot(center.clone().sub(headCenter))<0)normal.negate();
+  normal.normalize();normal.y=clamp(normal.y,-.18,.28);normal.normalize();
+  focusTargets[stop]=turn.worldToLocal(center.clone());
+  focusRadii[stop]=bounds.getBoundingSphere(new THREE.Sphere()).radius;
+  angles[stop]=clamp(-Math.atan2(normal.x,normal.z),-1.30,1.30);
+  elevations[stop]=clamp(Math.asin(normal.y)+.08,-.16,.32);
+  distances[stop]=clamp(focusRadii[stop]*1.86/(Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*.30),1.15,2.45);
+  rolls[stop]=({'focus-1':-.025,'focus-2':.02,'focus-3':-.025,'focus-4':.015,'focus-5':-.015})[stop];
+  focusLabels[stop]=names.join(', ');
+ }
+ for(const stop of stops){const point=focusTargets[stop];targetX[stop]=point.x;targetY[stop]=point.y;targetZ[stop]=point.z;}
+ mount.dataset.focusPoints=JSON.stringify(stops.map(stop=>({stop,label:focusLabels[stop],target:focusTargets[stop].toArray(),radius:focusRadii[stop],yaw:angles[stop],distance:distances[stop]})));
  model.traverse(o=>{
   if(!o.isMesh)return;
-  o.frustumCulled=true;o.castShadow=!compact;o.receiveShadow=!compact;
+  const decal=/sticker|stricker/i.test(o.name);
+  o.frustumCulled=true;o.castShadow=!compact&&!decal;o.receiveShadow=!compact&&!decal;
   const materials=Array.isArray(o.material)?o.material:[o.material];
   const adjusted=materials.map(original=>{
    let m=original;m.envMapIntensity=.55;
+   if(decal){m.polygonOffset=true;m.polygonOffsetFactor=-2;m.polygonOffsetUnits=-2;m.depthWrite=false;m.alphaTest=.5;m.roughness=.85;}
    if(warmClothes){if(/^hoodie(?:\s|$)/i.test(m.name))m.color.set('#dfc3a0');if(/^cap(?:\s|$)/i.test(m.name))m.color.set('#b29878');}
    if(/^shirt(?:\.|$)/i.test(m.name)){
     // Standard materials have fixed dielectric reflection. Physical materials
@@ -210,7 +250,7 @@ function frame(now){
  // never an angle-dependent sideways translation of the camera or character.
  const portrait=narrow.matches&&innerHeight>innerWidth;
  const resumeX=mobile.matches?.5:resumeAnchorX;
- const anchorX=lerp(.5,resumeX,enter),anchorY=.38;
+ const anchorX=lerp(.5,resumeX,enter),anchorY=lerp(.38,mobile.matches?.20:.43,enter);
  const visibleHeight=2*5*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
  const heroHeight=portrait?Math.min(1.352,camera.aspect*2.652):1.196;
  const resumeHeight=portrait?Math.min(1.373,camera.aspect*2.912):1.30*Math.min(1,camera.aspect/1.05);
@@ -220,7 +260,9 @@ function frame(now){
  turn.rotation.set(0,exitTurn*Math.PI*1.12,0);
  turn.scale.setScalar(height*visibleHeight/2);
  scene.updateMatrixWorld(true);
- target.copy(orbitPivot);turn.localToWorld(target);
+ target.set(samplePath(targetX,segment,t),samplePath(targetY,segment,t),samplePath(targetZ,segment,t));
+ if(exitPhase>0)target.lerp(orbitPivot,straighten);
+ turn.localToWorld(target);
  cameraDirection.set(-Math.sin(yaw)*Math.cos(elevation),Math.sin(elevation),Math.cos(yaw)*Math.cos(elevation));
  camera.position.copy(target).addScaledVector(cameraDirection,distance);camera.lookAt(target);
  const roll=reduced.matches?0:exitPhase>0?lerp(rolls['focus-5'],0,straighten):samplePath(rolls,segment,t);
@@ -228,6 +270,7 @@ function frame(now){
  camera.setViewOffset(innerWidth,innerHeight,(.5-anchorX)*innerWidth,(.5-anchorY)*innerHeight,innerWidth,innerHeight);
  camera.updateMatrixWorld(true);
  const projectedAnchor=target.clone().project(camera);
+ mount.dataset.focus=focusLabels[t<.5?from:to]||'Portrait';
  mount.dataset.anchor=`${((projectedAnchor.x+1)/2).toFixed(4)},${((1-projectedAnchor.y)/2).toFixed(4)}`;
  mount.style.opacity=String((1-exit)*(stage.classList.contains('focused')?0:1));
  // Let the torso continue beyond the viewport, without a chest fade.
@@ -246,11 +289,19 @@ function frame(now){
  key.intensity=2.35+(reduced.matches?0:Math.sin(phase)*.22);
  rim.position.set(2+Math.cos(phase*.8)*1.3,3,-4);
  rim.intensity=1.5+(reduced.matches?0:Math.sin(phase+.8)*.28);
- // Less than one CSS pixel of color separation, only in the closer shots.
- // The effect stays inside the character canvas; page text remains crisp.
- const zoomStrength=reduced.matches?0:smooth(clamp((5-distance)/.6,0,1));
- if(chromatic)chromatic.uniforms.amount.value=zoomStrength*.85/innerWidth;
- mount.dataset.aberration=zoomStrength.toFixed(3);
+ // The clear region follows the same smoothed 3D target as the camera.
+ const fromFocus=focusLabels[from]!=='Portrait'?1:0;
+ const toFocus=focusLabels[to]!=='Portrait'?1:0;
+ const focusStrength=reduced.matches?0:enter*(1-straighten)*lerp(fromFocus,toFocus,smooth(t));
+ const zoomStrength=reduced.matches?0:smooth(clamp((4.7-distance)/2.5,0,1));
+ const radius=samplePath(focusRadii,segment,t)*turn.scale.x/(distance*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)))*.5;
+ focusPass.uniforms.focus.value.set((projectedAnchor.x+1)/2,(projectedAnchor.y+1)/2);
+ focusPass.uniforms.resolution.value.set(innerWidth,innerHeight);
+ focusPass.uniforms.radius.value=clamp(radius*1.12,.065,.22);
+ focusPass.uniforms.strength.value=focusStrength;
+ focusPass.uniforms.blurPixels.value=compact?2:3.5;
+ focusPass.uniforms.aberrationPixels.value=zoomStrength*.85;
+ mount.dataset.aberration=zoomStrength.toFixed(3);mount.dataset.focusBlur=focusStrength.toFixed(3);
  if(exit<1||!firstFrame){
   if(composer)composer.render(dt);else renderer.render(scene,camera);
   updateChromeContrast(now);
