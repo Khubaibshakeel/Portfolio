@@ -180,9 +180,11 @@ try{
   focusTargets[stop]=turn.worldToLocal(center.clone());
   focusRadii[stop]=bounds.getBoundingSphere(new THREE.Sphere()).radius;
   angles[stop]=clamp(-Math.atan2(normal.x,normal.z),-1.30,1.30);
-  elevations[stop]=clamp(Math.asin(normal.y)+.08,-.16,.32);
+  // Alternate high and low views, keeping the orbit aimed at the decal.
+  const pitch=({'focus-1':.36,'focus-2':-.22,'focus-3':.24,'focus-4':-.14,'focus-5':.30})[stop];
+  elevations[stop]=clamp(pitch+Math.asin(normal.y)*.25,-.30,.43);
   distances[stop]=clamp(focusRadii[stop]*1.86/(Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*.30),1.15,2.45);
-  rolls[stop]=({'focus-1':-.025,'focus-2':.02,'focus-3':-.025,'focus-4':.015,'focus-5':-.015})[stop];
+  rolls[stop]=({'focus-1':-.035,'focus-2':.025,'focus-3':-.025,'focus-4':.02,'focus-5':-.035})[stop];
   focusLabels[stop]=names.join(', ');
  }
  for(const stop of stops){const point=focusTargets[stop];targetX[stop]=point.x;targetY[stop]=point.y;targetZ[stop]=point.z;}
