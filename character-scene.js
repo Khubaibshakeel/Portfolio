@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {DRACOLoader} from 'three/addons/loaders/DRACOLoader.js';
+import {DecalGeometry} from 'three/addons/geometries/DecalGeometry.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
@@ -86,6 +87,7 @@ const eyes=[],orbitPivot=new THREE.Vector3();
 const focusTargets={},focusRadii={},focusLabels={};
 const targetX={},targetY={},targetZ={};
 const stickerGroups={
+ 'focus-education':['Sticker_NJIT'],
  'focus-1':['Sticker_origami'],
  'focus-2':['Stricker_past_commssions'],
  'focus-3':['Sticker_environment'],
@@ -160,6 +162,23 @@ try{
  if(eyes.length){for(const eye of eyes)orbitPivot.add(eye.getWorldPosition(new THREE.Vector3()));orbitPivot.divideScalar(eyes.length);turn.worldToLocal(orbitPivot);}else orbitPivot.set(0,.55,0);
  // Discover sticker targets from their evaluated, shrinkwrapped geometry.
  const namedObject=name=>model.getObjectByName(name)||model.getObjectByName(name.replaceAll('.','_'));
+ // Project the university sticker onto the lower cheek, beneath the origami.
+ // Geometry follows the real face surface; no floating image plane.
+ const head=namedObject('Head');
+ if(head){
+  const cheek=new THREE.Vector3(.114,.357,.20);
+  const ray=new THREE.Raycaster(cheek.clone().add(new THREE.Vector3(0,0,.5)),new THREE.Vector3(0,0,-1));
+  const hit=ray.intersectObject(head,true)[0];
+  if(hit){
+   const normal=hit.face.normal.clone().applyNormalMatrix(new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld)).normalize();
+   const orientation=new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().lookAt(normal,new THREE.Vector3(),new THREE.Vector3(0,1,0)));
+   const texture=await new THREE.TextureLoader().loadAsync('assets/i-love-njit.png');
+   texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+   const material=new THREE.MeshStandardMaterial({map:texture,transparent:true,alphaTest:.5,depthWrite:false,roughness:.85,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});
+   const sticker=new THREE.Mesh(new DecalGeometry(hit.object,hit.point,orientation,new THREE.Vector3(.20,.08,.10)),material);
+   sticker.name='Sticker_NJIT';turn.add(sticker);model.attach(sticker);scene.updateMatrixWorld(true);
+  }
+ }
  const headCenter=new THREE.Box3().setFromObject(namedObject('Head')||model).getCenter(new THREE.Vector3());
  for(const stop of stops){focusTargets[stop]=orbitPivot.clone();focusRadii[stop]=.075;focusLabels[stop]='Portrait';}
  for(const [stop,names] of Object.entries(stickerGroups)){
@@ -181,10 +200,11 @@ try{
   focusRadii[stop]=bounds.getBoundingSphere(new THREE.Sphere()).radius;
   angles[stop]=clamp(-Math.atan2(normal.x,normal.z),-1.30,1.30);
   // Alternate high and low views, keeping the orbit aimed at the decal.
-  const pitch=({'focus-1':.36,'focus-2':-.22,'focus-3':.24,'focus-4':-.14,'focus-5':.30})[stop];
+  const pitch=({'focus-education':.20,'focus-1':.36,'focus-2':-.22,'focus-3':.24,'focus-4':-.14,'focus-5':.30})[stop];
   elevations[stop]=clamp(pitch+Math.asin(normal.y)*.25,-.30,.43);
   distances[stop]=clamp(focusRadii[stop]*1.86/(Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*.30),1.15,2.45);
-  rolls[stop]=({'focus-1':-.035,'focus-2':.025,'focus-3':-.025,'focus-4':.02,'focus-5':-.035})[stop];
+  rolls[stop]=({'focus-education':-.025,'focus-1':-.035,'focus-2':.025,'focus-3':-.025,'focus-4':.02,'focus-5':-.035})[stop];
+  if(stop==='focus-education'){distances[stop]=1.65;focusRadii[stop]=.09;}
   focusLabels[stop]=names.join(', ');
  }
  for(const stop of stops){const point=focusTargets[stop];targetX[stop]=point.x;targetY[stop]=point.y;targetZ[stop]=point.z;}
