@@ -27,14 +27,15 @@ function samplePath(values,index,t){
  const a=v(index-1),b=v(index),c=v(index+1),d=v(index+2);
  return .5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t);
 }
-const stops=['focus-start','focus-1','focus-2','focus-3','focus-4','focus-5','focus-works'];
-// Five deliberately different shots: high right, right profile, low frontal,
+const stops=['focus-start',...Array.from(document.querySelectorAll('.tl-entry'),el=>el.dataset.point),'focus-works'];
+// Education opens with a gentle three-quarter pose, followed by five different shots:
+// high right, right profile, low frontal,
 // left profile, and high frontal. No repeated diagonal seesaw.
-const angles={'focus-start':0,'focus-1':-.64,'focus-2':-1.15,'focus-3':.28,'focus-4':1.08,'focus-5':-.12,'focus-works':.4};
-const elevations={'focus-start':0,'focus-1':.32,'focus-2':-.08,'focus-3':-.26,'focus-4':.18,'focus-5':.40,'focus-works':.12};
-const distances={'focus-start':5,'focus-1':4.45,'focus-2':5.15,'focus-3':4.65,'focus-4':5.35,'focus-5':4.6,'focus-works':5.8};
-const rolls={'focus-start':0,'focus-1':-.035,'focus-2':.045,'focus-3':-.055,'focus-4':.035,'focus-5':-.025,'focus-works':.12};
-let scrollState={from:'focus-start',to:'focus-1',progress:0};
+const angles={'focus-start':0,'focus-education':.28,'focus-1':-.64,'focus-2':-1.15,'focus-3':.28,'focus-4':1.08,'focus-5':-.12,'focus-works':.4};
+const elevations={'focus-start':0,'focus-education':.14,'focus-1':.32,'focus-2':-.08,'focus-3':-.26,'focus-4':.18,'focus-5':.40,'focus-works':.12};
+const distances={'focus-start':5,'focus-education':4.85,'focus-1':4.45,'focus-2':5.15,'focus-3':4.65,'focus-4':5.35,'focus-5':4.6,'focus-works':5.8};
+const rolls={'focus-start':0,'focus-education':0,'focus-1':-.035,'focus-2':.045,'focus-3':-.055,'focus-4':.035,'focus-5':-.025,'focus-works':.12};
+let scrollState={from:'focus-start',to:stops[1],progress:0};
 addEventListener('portfolio:scene',e=>{if(!stage.classList.contains('focused'))scrollState=e.detail;});
 let renderer;
 try{renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:compact?'low-power':'default'});}

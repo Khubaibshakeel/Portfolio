@@ -138,7 +138,7 @@ function measure() {
 }
 
 // A renderer can subscribe later without changing the page or scroll behavior.
-// The five data-point entries are the camera's stops; focus-works is the final stop.
+// Each data-point entry is a camera stop; focus-works is the final stop.
 export function registerSceneController(controller) {
   const listener = e => controller(e.detail);
   window.addEventListener('portfolio:scene',listener);
