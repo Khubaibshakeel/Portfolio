@@ -92,7 +92,7 @@ const stickerGroups={
  'focus-2':['Stricker_past_commssions'],
  'focus-3':['Sticker_environment'],
  'focus-4':['Sticker_Space_settlement','Sticker_Space_settlement.001','Sticker_Space_settlement.002'],
- 'focus-5':['Sticker_content_creator','Sticker_content_creator.001']
+ 'focus-5':['Sticker_content_creator','Sticker_content_creator.001','Sticker_creator_handle']
 };
 let resumeAnchorX=.35,loaded=false;
 function resize(){
@@ -162,11 +162,29 @@ try{
  if(eyes.length){for(const eye of eyes)orbitPivot.add(eye.getWorldPosition(new THREE.Vector3()));orbitPivot.divideScalar(eyes.length);turn.worldToLocal(orbitPivot);}else orbitPivot.set(0,.55,0);
  // Discover sticker targets from their evaluated, shrinkwrapped geometry.
  const namedObject=name=>model.getObjectByName(name)||model.getObjectByName(name.replaceAll('.','_'));
- // Project the university sticker onto the lower cheek, beneath the origami.
+ // Keep the university sticker above the two creative-work decals.
  // Geometry follows the real face surface; no floating image plane.
  const head=namedObject('Head');
  if(head){
-  const cheek=new THREE.Vector3(.114,.357,.20);
+  // Lower both existing decals and fit each vertex back to the face,
+  // preserving their original artwork, UVs, and size.
+  for(const name of ['Sticker_origami','Sticker_environment']){
+   const object=namedObject(name);if(!object)continue;
+   object.traverse(mesh=>{
+    if(!mesh.isMesh)return;
+    mesh.geometry=mesh.geometry.clone();
+    const position=mesh.geometry.attributes.position,point=new THREE.Vector3();
+    for(let i=0;i<position.count;i++){
+     point.fromBufferAttribute(position,i).applyMatrix4(mesh.matrixWorld);point.y-=.045;
+     const projector=new THREE.Raycaster(new THREE.Vector3(point.x,point.y,point.z+.5),new THREE.Vector3(0,0,-1));
+     const surface=projector.intersectObject(head,true)[0];
+     if(surface)point.copy(surface.point);
+     mesh.worldToLocal(point);position.setXYZ(i,point.x,point.y,point.z);
+    }
+    position.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingBox();mesh.geometry.computeBoundingSphere();
+   });
+  }
+  const cheek=new THREE.Vector3(.108,.493,.20);
   const ray=new THREE.Raycaster(cheek.clone().add(new THREE.Vector3(0,0,.5)),new THREE.Vector3(0,0,-1));
   const hit=ray.intersectObject(head,true)[0];
   if(hit){
@@ -175,8 +193,22 @@ try{
    const texture=await new THREE.TextureLoader().loadAsync('assets/i-love-njit.png');
    texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
    const material=new THREE.MeshStandardMaterial({map:texture,transparent:true,alphaTest:.5,depthWrite:false,roughness:.85,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});
-   const sticker=new THREE.Mesh(new DecalGeometry(hit.object,hit.point,orientation,new THREE.Vector3(.20,.08,.10)),material);
+   const sticker=new THREE.Mesh(new DecalGeometry(hit.object,hit.point,orientation,new THREE.Vector3(.145,.058,.075)),material);
    sticker.name='Sticker_NJIT';turn.add(sticker);model.attach(sticker);scene.updateMatrixWorld(true);
+  }
+ }
+ // A compact handle label under the Instagram mark, fitted to the cheek.
+ if(head){
+  const ray=new THREE.Raycaster(new THREE.Vector3(-.088,.417,.75),new THREE.Vector3(0,0,-1));
+  const hit=ray.intersectObject(head,true)[0];
+  if(hit){
+   const normal=hit.face.normal.clone().applyNormalMatrix(new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld)).normalize();
+   const orientation=new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().lookAt(normal,new THREE.Vector3(),new THREE.Vector3(0,1,0)));
+   const texture=await new THREE.TextureLoader().loadAsync('assets/khubaibrenders-handle.svg');
+   texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+   const material=new THREE.MeshStandardMaterial({map:texture,transparent:true,alphaTest:.5,depthWrite:false,roughness:.85,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});
+   const sticker=new THREE.Mesh(new DecalGeometry(hit.object,hit.point,orientation,new THREE.Vector3(.07,.01167,.06)),material);
+   sticker.name='Sticker_creator_handle';turn.add(sticker);model.attach(sticker);scene.updateMatrixWorld(true);
   }
  }
  const headCenter=new THREE.Box3().setFromObject(namedObject('Head')||model).getCenter(new THREE.Vector3());
