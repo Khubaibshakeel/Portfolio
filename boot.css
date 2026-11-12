@@ -1,21 +1,9 @@
-.is-loading{overflow:hidden}
-.site-loader{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:#faf6ee;color:#8d867a;transition:opacity .7s ease,visibility .7s;touch-action:none}
-.loader-ring{width:34px;height:34px;border:1px solid #88674e24;border-top-color:#88674e;border-right-color:#88674e;border-radius:50%;animation:loader-turn 1s linear infinite}
-.site-loader p{margin:0;font:10px 'Inter Tight',system-ui,sans-serif;letter-spacing:.08em}
-.site-loader.ready{opacity:0;visibility:hidden;pointer-events:none}
-.is-loading .hero .about-intro{animation:none;opacity:0}
-.is-revealing .hero .about-intro{animation:opening-copy 1.2s ease both}
-.is-revealing #character-scene{animation:opening-scene 1s ease both}
-@keyframes loader-turn{to{transform:rotate(360deg)}}
-@keyframes opening-scene{from{filter:blur(8px)}to{filter:blur(0)}}
-@keyframes opening-copy{from{opacity:0;transform:translateY(12px);filter:blur(6px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}
-@media(prefers-reduced-motion:reduce){.loader-ring{animation-duration:2s}.site-loader{transition:none}.is-revealing .hero .about-intro,.is-revealing #character-scene{animation:none;opacity:1}}
-
-/* A personal mark, animated without waiting for fonts, models or a framework. */
-.loader-signature{width:82px;height:82px;overflow:visible;color:var(--ink,#f5e9d6)}
-.loader-signature path{stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:160;stroke-dashoffset:160;animation:signature-draw 3.4s ease-in-out infinite}
-.loader-signature .signature-leg{animation-delay:.25s}
-.signature-dot{fill:var(--accent,#e2bb83);transform-origin:57px 57px;animation:signature-dot 3.4s ease-in-out infinite}
-@keyframes signature-draw{0%,10%{stroke-dashoffset:160;opacity:.25}45%,75%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:-160;opacity:.1}}
-@keyframes signature-dot{0%,100%{opacity:.5;transform:scale(.85)}50%{opacity:1;transform:scale(1)}}
-@media(prefers-reduced-motion:reduce){.loader-signature path,.signature-dot{animation:none}.loader-signature path{stroke-dashoffset:0;opacity:1}}
+/* A small signature beside the hero, never a gate on page navigation. */
+.site-loader{position:absolute;top:0;right:12px;display:grid;place-items:center;width:36px;height:36px;z-index:2;pointer-events:none;color:var(--ink)}
+.site-loader[hidden]{display:none}
+.loader-signature{width:34px;height:34px;overflow:visible;color:inherit}
+.loader-signature path{fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:160;animation:signature-draw 1.8s ease both}
+.loader-signature .signature-leg{animation-delay:.18s}
+.signature-dot{fill:var(--accent)}
+@keyframes signature-draw{from{stroke-dashoffset:160}to{stroke-dashoffset:0}}
+@media(prefers-reduced-motion:reduce){.loader-signature path{animation:none}}
