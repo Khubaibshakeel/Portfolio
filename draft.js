@@ -143,9 +143,10 @@ function setCategory(index){
   activeCategory=index;
   categoryLinks.forEach((link,i)=>i===index?link.setAttribute('aria-current','location'):link.removeAttribute('aria-current'));
 }
+const cardOffset=card=>card.offsetLeft-cards[0].offsetLeft;
 function jumpToCard(card){
   const top=gallery.getBoundingClientRect().top+scrollY;
-  scrollTo({top:top+card.offsetLeft,behavior:'instant'});
+  scrollTo({top:top+cardOffset(card),behavior:'instant'});
   paint();
 }
 categories.addEventListener('click',event=>{
@@ -208,7 +209,7 @@ function paint() {
   if (!mobile.matches && !reduced.matches) track.style.transform=`translateX(${-galleryProgress*range}px)`;else track.style.transform='none';
   progress.style.transform=`scaleX(${galleryProgress})`;
   const current=sideways()
-    ? cards.reduce((nearest,card,i)=>Math.abs(card.offsetLeft-galleryProgress*range)<Math.abs(cards[nearest].offsetLeft-galleryProgress*range)?i:nearest,0)
+    ? cards.reduce((nearest,card,i)=>Math.abs(cardOffset(card)-galleryProgress*range)<Math.abs(cardOffset(cards[nearest])-galleryProgress*range)?i:nearest,0)
     : cards.reduce((nearest,card,i)=>card.getBoundingClientRect().top<=vh*.45?i:nearest,0);
   setCategory(current);
   const stops=[{name:'focus-start',y:0},...entries.map(el=>({name:el.dataset.point,y:el.getBoundingClientRect().top+y-vh*.3})),{name:'focus-works',y:galleryTop}];
