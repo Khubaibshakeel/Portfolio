@@ -110,21 +110,21 @@ export const groups = [
         "title": "Flipping Sign — Animation",
         "type": "video",
         "src": "assets/flipping-sign-animation.mp4",
-        "description": "I modeled the hinges separately so each sticker-covered panel could rotate independently. That setup lets the animation show the artwork on both sides of the panels.",
+        "description": "The flip-panel sign in motion — panels rotating through their sticker-covered faces.",
         "viewport": ""
       },
       {
         "title": "Ghibli Inspired Scene — Animation",
         "type": "video",
         "src": "assets/ghibli-inspired-scene-animation.mp4",
-        "description": "I paired a slow camera drift with moving clouds and chimney smoke to give the cottage scene a living-postcard feel.",
+        "description": "Camera drifting past the cottage scene, clouds and smoke animated for a living-postcard feel.",
         "viewport": ""
       },
       {
         "title": "Glowing Crystal — Animation",
         "type": "video",
         "src": "assets/glowing-crystal-animation.mp4",
-        "description": "I kept the rotation slow and used the orbiting shards to frame the glowing crystal as it turns.",
+        "description": "The crystal and its orbiting shards animated in a slow, glowing rotation.",
         "viewport": ""
       }
     ]

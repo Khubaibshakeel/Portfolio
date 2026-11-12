@@ -1,4 +1,4 @@
-import { groups } from './projects.js?v=usable-33';
+import { groups } from './projects.js?v=motion-5';
 import { projectGalleries } from './project-gallery.js?v=motion-5';
 import { loadModelViewer } from './model-runtime.js';
 document.documentElement.classList.add('js');
@@ -13,16 +13,10 @@ const modelSources={'Sveston Paxton — Gold':'assets/sveston.glb','AirPods Max 
 function releaseProjectModel(){if(modelViewer){modelViewer.src=null;modelViewer.remove();modelViewer=null;}modelActive=false;}
 let current = null, viewport = false;
 const node = (tag, className, text) => { const el = document.createElement(tag); el.className = className; if (text) el.textContent = text; return el; };
-const categories = document.querySelector('.works-categories');
-const allProjects = groups.flatMap(group=>group.items);
-const stillFor = item => item.type==='video' ? allProjects.find(other=>other.type==='img'&&other.title===item.title.replace(' — Animation','')) : item;
 for (const group of groups) {
   const card = node('article','wk-card');
-  card.id='work-'+group.title.toLowerCase().replaceAll(' ','-');
-  const categoryLink=node('a','works-category',group.title);
-  categoryLink.href='#'+card.id;categories.append(categoryLink);
   const head = node('header','wk-card-head');
-  head.append(node('h3','wk-card-title',group.title),node('span','wk-card-tagline',group.note));
+  head.append(node('span','wk-card-no',group.no),node('h3','wk-card-title',group.title),node('span','wk-card-tagline',group.note));
   const cover = node('div','wk-card-cover');
   const coverImage = document.createElement('img'); coverImage.src = group.cover; coverImage.alt = ''; coverImage.loading = 'lazy'; cover.append(coverImage);
   const body = node('div','wk-card-body');
@@ -30,10 +24,7 @@ for (const group of groups) {
   group.items.forEach(item => {
     const li = node('li','wk-line'), button = node('button','wk-line-btn');
     button.type = 'button'; button.setAttribute('aria-haspopup','dialog');
-    const thumb=document.createElement('img');
-    thumb.src=stillFor(item)?.src||group.cover;thumb.alt='';thumb.loading='lazy';thumb.decoding='async';
-    thumb.width=64;thumb.height=44;thumb.className='wk-line-thumb';
-    button.append(thumb,node('span','wk-line-name',item.title),node('span','wk-line-meta','View project'));
+    button.append(node('span','wk-line-name',item.title),node('span','wk-line-meta',item.type === 'video' ? 'Motion ↗' : 'Explore ↗'));
     button.addEventListener('click',()=>openProject(item,group.title));
     li.append(button); list.append(li);
   });
@@ -49,7 +40,7 @@ function openProject(item,category) {
   const group=groups.find(group=>group.title===category);
   const tags=document.querySelector('.project-tags');tags.replaceChildren();
   (group?.note.split(' · ')||[]).forEach(tag=>tags.append(node('span','project-tag',tag)));
-  const stillItem=stillFor(item);
+  const stillItem=item.type==='video'?groups.flatMap(group=>group.items).find(other=>other.type==='img'&&other.title===item.title.replace(' — Animation','')):item;
   const banner=stillItem?.src||group.cover;
   image.hidden=false;video.hidden=true;
   toggle.hidden=!item.viewport;toggle.textContent='Show viewport';toggle.setAttribute('aria-pressed','false');
@@ -124,7 +115,7 @@ dialog.addEventListener('click',e=> {if(e.target === dialog) {const r=dialog.get
 dialog.addEventListener('close',()=>{video.pause();video.removeAttribute('src');video.load();releaseProjectModel();document.body.style.overflow='';});
 
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-const mobile = matchMedia('(max-width:760px), (max-height:550px)');
+const mobile = matchMedia('(max-width:640px), (max-height:600px) and (max-width:1000px)');
 const gallery = document.querySelector('.wk-gallery');
 const hero = document.querySelector('.hero');
 const about = document.querySelector('.about');
@@ -135,43 +126,14 @@ const scrim = document.querySelector('.scrim');
 const fog = document.querySelector('.stage-fog');
 const cue = document.querySelector('.scroll-cue');
 const progress = document.querySelector('.wk-progress-fill');
-const cards=[...track.children], categoryLinks=[...categories.querySelectorAll('a')];
-const sideways=()=>!mobile.matches&&!reduced.matches;
-let activeCategory=-1;
-function setCategory(index){
-  if(index===activeCategory)return;
-  activeCategory=index;
-  categoryLinks.forEach((link,i)=>i===index?link.setAttribute('aria-current','location'):link.removeAttribute('aria-current'));
-}
-const cardOffset=card=>card.offsetLeft-cards[0].offsetLeft;
-function jumpToCard(card){
-  const top=gallery.getBoundingClientRect().top+scrollY;
-  scrollTo({top:top+cardOffset(card),behavior:'instant'});
-  paint();
-}
-categories.addEventListener('click',event=>{
-  const link=event.target.closest('a');
-  if(!link||!sideways()||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
-  const card=document.getElementById(link.hash.slice(1));
-  if(!card)return;
-  event.preventDefault();
-  if(location.hash!==link.hash)history.pushState(null,'',link.hash);
-  jumpToCard(card);
-});
-function followCategoryHash(){
-  const card=cards.find(card=>'#'+card.id===location.hash);
-  if(card&&sideways())jumpToCard(card);
-}
-addEventListener('hashchange',followCategoryHash);
+const hint = document.querySelector('.wk-hint');
 const entries = [...document.querySelectorAll('.tl-entry')];
 let range = 0, scheduled = false;
 const clamp = x => Math.max(0, Math.min(1,x));
 function measure() {
   document.documentElement.style.setProperty('--resume-line-left',`${document.querySelector('.resume .timeline').getBoundingClientRect().left}px`);
-  const frame=gallery.querySelector('.wk-gallery-sticky');
-  gallery.style.setProperty('--work-width',`${frame.clientWidth}px`);
-  range=sideways()?Math.max(0,track.scrollWidth-frame.clientWidth):0;
-  gallery.style.height=sideways()?`${frame.clientHeight+range}px`:'auto';
+  range = Math.max(0,track.scrollWidth-innerWidth);
+  gallery.style.height = mobile.matches || reduced.matches ? 'auto' : `${innerHeight+range}px`;
   paint();
 }
 
@@ -203,15 +165,9 @@ function paint() {
     title.style.transform=`translateY(${-heroProgress*96}px)`;
     title.style.letterSpacing=`${.01+heroProgress*.41}em`;
   } else {about.style.opacity='1';about.style.filter='none';title.style.transform='none';title.style.letterSpacing='.01em';}
-  const actions=about.querySelector('.hero-actions');
-  actions.inert=actions.getBoundingClientRect().bottom<=0&&!actions.contains(document.activeElement);
-  if(actions.contains(document.activeElement)||about.matches(':hover')){about.style.opacity='1';about.style.filter='none';}
   if (!mobile.matches && !reduced.matches) track.style.transform=`translateX(${-galleryProgress*range}px)`;else track.style.transform='none';
   progress.style.transform=`scaleX(${galleryProgress})`;
-  const current=sideways()
-    ? cards.reduce((nearest,card,i)=>Math.abs(cardOffset(card)-galleryProgress*range)<Math.abs(cardOffset(cards[nearest])-galleryProgress*range)?i:nearest,0)
-    : cards.reduce((nearest,card,i)=>card.getBoundingClientRect().top<=vh*.45?i:nearest,0);
-  setCategory(current);
+  hint.style.opacity=String(1-clamp((galleryProgress-.85)/.15));
   const stops=[{name:'focus-start',y:0},...entries.map(el=>({name:el.dataset.point,y:el.getBoundingClientRect().top+y-vh*.3})),{name:'focus-works',y:galleryTop}];
   let index=0;while(index<stops.length-2&&y>stops[index+1].y)index++;
   const from=stops[index],to=stops[index+1];
@@ -228,13 +184,12 @@ new ResizeObserver(measure).observe(track);
 const reveals = new IntersectionObserver(list=>list.forEach(({target,isIntersecting})=>{if(isIntersecting){target.classList.add('visible');reveals.unobserve(target);}}),{threshold:.1});
 document.querySelectorAll('.reveal').forEach(el=>reveals.observe(el));
 document.fonts.ready.then(measure);measure();
-if(location.hash.startsWith('#work-'))requestAnimationFrame(followCategoryHash);
 
 // Bring a keyboard-focused project into view in the pinned horizontal gallery.
 track.addEventListener('focusin',e=> {
   if(mobile.matches||reduced.matches)return;
   const card=e.target.closest('.wk-card');if(!card)return;
   const left=card.getBoundingClientRect().left,right=card.getBoundingClientRect().right;
-  if(left<0||right>innerWidth)jumpToCard(card);
+  if(left<0||right>innerWidth){const top=gallery.getBoundingClientRect().top+scrollY;scrollTo({top:top+card.offsetLeft,behavior:'instant'});}
 });
 

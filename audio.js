@@ -1,8 +1,8 @@
-// Original synthesized sounds. Effects follow browser activation; music requires an explicit opt-in.
+// Original synthesized sounds. Enabled by default; browser activation starts playback.
 const effectsButton = document.querySelector('#sound-effects');
 const musicButton = document.querySelector('#sound-music');
 let context, effectsBus, musicBus, noise, timer, nextBeat = 0, beat = 0;
-let effects = true, music = false, lastScroll = 0, lastY = scrollY;
+let effects = true, music = true, lastScroll = 0, lastY = scrollY;
 async function unlock() {
   if (!context) {
     context = new (window.AudioContext || window.webkitAudioContext)();
@@ -69,13 +69,13 @@ function startMusic(){
 }
 async function activate(event){
   if(event.target.closest('.sound-controls')||(!effects&&!music))return;
-  try{await unlock();}catch{/* Leave the controls available for retry. */}
+  try{await unlock();startMusic();}catch{/* Leave the controls available for retry. */}
 }
 document.addEventListener('pointerdown',activate,{passive:true});
 document.addEventListener('keydown',event=>{if(!event.ctrlKey&&!event.metaKey&&!event.altKey)activate(event);});
 effectsButton.addEventListener('click',async () => {
   effects = !effects; effectsButton.textContent = effects ? 'Sounds on' : 'Sounds off'; effectsButton.setAttribute('aria-pressed',String(effects));
-  try {if(effects){await unlock();clickSound();}}
+  try {await unlock();startMusic();if(effects)clickSound();}
   catch {effectsButton.textContent = 'Sound unavailable';}
 });
 musicButton.addEventListener('click',async () => {

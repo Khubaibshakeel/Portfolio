@@ -136,7 +136,7 @@ function sphereCenter(eye){
 try{
  const gltf=await loader.loadAsync(compact?'assets/Khubaib-stickers-mobile-v1.glb':'assets/Khubaib-stickers-v1.glb',e=>{
   status.textContent=e.total?`Loading Khubaib… ${Math.round(e.loaded/e.total*100)}%`:'Loading Khubaib…';
-  if(e.total)window.portfolioBoot?.progress?.(e.loaded/e.total*100);
+  if(e.total)window.portfolioBoot?.progress(e.loaded/e.total*100);
  });
  const model=gltf.scene;model.updateMatrixWorld(true);
  // Recenter each eyeball around its own geometric center. Both exported

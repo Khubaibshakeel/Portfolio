@@ -26,16 +26,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Mansalva&family=Cormorant+Upright:wght@600&family=Chiron+GoRound+TC:wght@400;500;600&family=Inter+Tight:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="reference.css">
-  <link rel="stylesheet" href="boot.css?v=usable-33">
+  <link rel="stylesheet" href="boot.css?v=signature-1">
   <link rel="stylesheet" href="draft.css?v=grain-20">
   <link rel="stylesheet" href="orbit-showcase.css?v=anchor-19">
   <link rel="stylesheet" href="character-scene.css?v=motion-5">
   <link rel="stylesheet" href="theme.css?v=anchor-19">
-  <link rel="stylesheet" href="portfolio.css?v=layout-36">
   <script src="theme.js?v=brown-8"></script>
   <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}</script>
 </head>
-<body>
+<body aria-busy="true">
+  <div class="site-loader" id="site-loader" role="status" aria-live="polite"><svg class="loader-signature" viewBox="0 0 68 68" fill="none" aria-hidden="true"><path pathLength="160" class="signature-stem" d="M21 12 Q18 32 20 56"/><path pathLength="160" class="signature-leg" d="M49 14 Q31 34 21 35 Q39 38 50 56"/><circle class="signature-dot" cx="57" cy="57" r="3"/></svg><p id="loader-label">Loading your world…</p></div>
+  <script src="boot.js?v=motion-5"></script>
   <a class="skip-link" href="#resume">Skip to résumé</a>
   <a class="skip-link" href="#works">Skip to works</a>
   <div class="scene-bg" aria-hidden="true"><div id="scene-mount"></div></div>
@@ -56,14 +57,13 @@
   <a class="source-link" href="https://github.com/Khubaibshakeel/Portfolio" target="_blank" rel="noopener noreferrer" aria-label="Khubaib's portfolio on GitHub">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.11.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.53-1.35-1.3-1.7-1.3-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.78 2.73 1.26 3.39.96.1-.75.41-1.26.74-1.55-2.57-.3-5.27-1.28-5.27-5.72 0-1.27.45-2.31 1.19-3.12-.12-.29-.52-1.47.12-3.07 0 0 .97-.31 3.16 1.19a10.96 10.96 0 0 1 5.75 0c2.19-1.5 3.15-1.19 3.15-1.19.65 1.6.25 2.78.13 3.07.74.81 1.18 1.85 1.18 3.12 0 4.45-2.71 5.42-5.29 5.71.42.36.79 1.07.79 2.16v3.25c0 .31.21.67.79.56A11.5 11.5 0 0 0 12 .7Z"/></svg>
   </a>
-  <main class="content" id="main">
+  <main class="content" id="main" inert>
     <section class="hero" id="about" aria-labelledby="about-title">
       <div class="hero-orbit">
-          <div class="site-loader" id="site-loader" hidden aria-hidden="true"><svg class="loader-signature" viewBox="0 0 68 68" fill="none" aria-hidden="true"><path pathLength="160" class="signature-stem" d="M21 12 Q18 32 20 56"/><path pathLength="160" class="signature-leg" d="M49 14 Q31 34 21 35 Q39 38 50 56"/><circle class="signature-dot" cx="57" cy="57" r="3"/></svg></div>
       <div class="orbit-stage" aria-label="Khubaib and interactive objects">
-        <div class="character"><div class="reference-window"><img class="character-preview" src="assets/Khubaib-poster-balanced.webp" alt="Khubaib's character" width="600" height="720" fetchpriority="high"><p id="character-status" role="status" hidden></p></div><span>Khubaib</span><small>3D artist · Newark</small></div>
-        <div class="object-slot watch" data-slot="watch"><div class="float-object" data-viewer="watch"><img src="assets/sveston-poster-original.webp" alt="" width="600" height="720" decoding="async"></div><button class="select-object" data-select="watch" disabled aria-label="Explore Sveston watch in 3D"><span class="object-caption">Sveston Paxton <i>Explore in 3D</i></span></button></div>
-        <div class="object-slot airpods" data-slot="airpods"><div class="float-object" data-viewer="airpods"><img src="assets/airpodsmax-poster-original.webp" alt="" width="600" height="720" decoding="async"></div><button class="select-object" data-select="airpods" disabled aria-label="Explore AirPods Max in 3D"><span class="object-caption">AirPods Max <i>Explore in 3D</i></span></button></div>
+        <div class="character"><div class="reference-window"><img class="character-preview" src="assets/Khubaib-poster-balanced.webp" alt="Khubaib's character" width="600" height="720" fetchpriority="high"><p id="character-status" role="status">Loading Khubaib…</p></div><span>Khubaib</span><small>3D artist · Newark</small></div>
+        <div class="object-slot watch" data-slot="watch"><div class="float-object" data-viewer="watch"></div><button class="select-object" data-select="watch" disabled aria-label="Explore Sveston watch in 3D"><span class="object-caption">Sveston Paxton <i>Loading…</i></span></button></div>
+        <div class="object-slot airpods" data-slot="airpods"><div class="float-object" data-viewer="airpods"></div><button class="select-object" data-select="airpods" disabled aria-label="Explore AirPods Max in 3D"><span class="object-caption">AirPods Max <i>Loading…</i></span></button></div>
         <div class="focus-controls" hidden><button id="return">← Back to my world</button><button id="reset">Reset angle ↺</button></div>
       </div>
         <p id="instruction" class="orbit-instruction" role="status" hidden></p>
@@ -71,10 +71,6 @@
       <div class="about"><div class="about-intro">
         <h1 class="about-title" id="about-title">About Khubaib</h1>
         <p class="about-body">I'm Khubaib — a 3D artist based in Newark, working with clients everywhere. I spend my days around modeling, materials, lighting, and imagined worlds. I like making things, testing ideas, and following the details until an image feels right.</p>
-        <nav class="hero-actions" aria-label="Portfolio shortcuts">
-          <a class="work-action" href="#works">View work <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v11m-4-4 4 4 4-4"/></svg></a>
-          <a href="#contact">Email Khubaib</a>
-        </nav>
       </div></div>
       <div class="scroll-cue" aria-hidden="true"><span class="scroll-cue-label">Scroll</span><span class="scroll-cue-track"><span class="scroll-cue-dot"></span></span></div>
     </section>
@@ -121,17 +117,13 @@
     </section>
     <section class="works" id="works" aria-labelledby="works-title">
       <div class="wk-gallery"><div class="wk-gallery-sticky">
-        <header class="works-header"><h2 class="wk-gallery-title" id="works-title">Works</h2><nav class="works-categories" aria-label="Work categories"></nav></header>
+        <h2 class="wk-gallery-title" id="works-title">Works</h2>
         <div class="wk-track" id="work-track"></div>
         <div class="wk-progress" aria-hidden="true"><div class="wk-progress-fill"></div></div>
-
+        <span class="wk-hint" aria-hidden="true">Keep scrolling →</span>
       </div></div>
     </section>
 
-    <footer class="portfolio-contact" id="contact" aria-labelledby="contact-title">
-      <h2 id="contact-title">Contact Khubaib</h2>
-      <a href="mailto:Khubaibshakeel12@gmail.com">Khubaibshakeel12@gmail.com</a>
-    </footer>
   </main>
   <dialog class="project-dialog" aria-labelledby="project-title">
     <div class="project-toolbar"><button class="wk-detail-close" aria-label="Close project">✕</button></div>
@@ -144,12 +136,12 @@
   </dialog>
   <div class="sound-controls" role="group" aria-label="Sound settings">
     <button id="sound-effects" type="button" aria-pressed="true">Sounds on</button>
-    <button id="sound-music" type="button" aria-pressed="false">Music off</button>
+    <button id="sound-music" type="button" aria-pressed="true">Music on</button>
   </div>
-  <script type="module" src="draft.js?v=layout-35"></script>
-  <script type="module" src="orbit-preview.js?v=usable-33"></script>
-  <script type="module" src="boot.js?v=usable-33"></script>
-  <script type="module" src="audio.js?v=usable-33"></script>
+  <script type="module" src="draft.js?v=education-22"></script>
+  <script type="module" src="orbit-preview.js?v=motion-5"></script>
+  <script type="module" src="character-scene.js?v=order-30"></script>
+  <script type="module" src="audio.js?v=default-on-2"></script>
   <script type="module" src="grain.js?v=grain-20"></script>
 </body>
 </html>
